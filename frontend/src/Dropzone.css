@@ -1,0 +1,27 @@
+.thumb {
+    display: inline-flex;
+    border-radius: 2px;
+    border: 1px solid #4a5c66;
+    margin: 4px;
+    width: 11.3%;
+    padding: 4px;
+    box-sizing: border-box
+}
+
+@media (min-width: 0px) {
+    .thumb {
+        border-radius: 2px;
+        margin: 4px 3%;
+        width: 27%;
+        padding: 2px 0.2%;
+    }
+}
+
+@media (min-width: 1200px) {
+    .thumb {
+        border-radius: 2px;
+        margin: 4px 0.55%;
+        width: 11.3%;
+        padding: 4px 0.55%;
+    }
+}
