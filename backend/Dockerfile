@@ -34,4 +34,4 @@ EXPOSE 5000
 
 # Specify the command to run on container start
 # Adjust 'app.py' to the entry point of your application
-CMD ["gunicorn", "--certfile=./cert/xai_mnd_thm_de.pem", "--keyfile=./cert/xai-server-ssl-cert.key", "--bind", "0.0.0.0:5000", "app:endpoints"]
+CMD ["gunicorn", "--certfile=./cert/xai_mnd_thm_de.pem", "--keyfile=./cert/xai-server-ssl-cert.key", "--bind", "0.0.0.0:5000", "endpoints:app"]
