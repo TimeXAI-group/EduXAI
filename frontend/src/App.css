@@ -7,6 +7,7 @@ button {
   color: #FFFFFF;
   background-color: #4a5c66;
   border: none;
+  border-radius: 3px;
 }
 
 button:hover {
@@ -19,6 +20,15 @@ button:disabled {
 
 input {
   border: none;
+  border-radius: 3px;
+}
+
+select {
+  border-radius: 3px;
+}
+
+.status {
+  border-radius: 3px;
 }
 
 .flexbox {
@@ -53,12 +63,23 @@ input {
   justify-content: space-between;
 }
 
+.classLabel {
+  display: block;
+  width: 100%;
+}
+
+.classNameInput {
+  padding: 0;
+}
+
 .classFlexboxContainer {
   background-color: #80ba24;
+  border-radius: 10px;
 }
 
 .trainFlexboxContainer {
   background-color: #80ba24;
+  border-radius: 10px;
 }
 
 .trainContainer {
@@ -68,12 +89,13 @@ input {
 
 .testFlexboxContainer {
   background-color: #80ba24;
+  border-radius: 10px;
 }
 
-@media (min-width: 0px) and (max-width: 1199px){
+@media (min-width: 0px) and (max-width: 599px){
 
   body {
-    padding: 10px;
+    padding: 15px;
     font-size: 5vw;
   }
 
@@ -81,14 +103,20 @@ input {
     font-size: 5vw;
   }
 
-  input {
+  .classNameInput {
+    width: calc(100% - 6px);
     margin-top: 10px;
     font-size: 5vw;
-    width: 86%;
+    padding: 1px 3px;
   }
 
   select {
     font-size: 5vw;
+  }
+
+  .status {
+    width: 94%;
+    padding: 5px 3%;
   }
 
   .header {
@@ -105,7 +133,7 @@ input {
 
   .kite {
     width: 90%;
-    padding-bottom: 40px;
+    padding-bottom: 25px;
   }
 
   .arrowFlexboxContainer {
@@ -124,7 +152,7 @@ input {
   }
 
   .classFlexboxContainer {
-    width: 45%;
+    width: 47%;
   }
 
   .classContainer {
@@ -149,7 +177,176 @@ input {
   }
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 600px) and (max-width: 1199px) {
+  body {
+    padding: 20px;
+    font-size: 3vw;
+  }
+
+  button {
+    font-size: 3vw;
+  }
+
+  .classNameInput {
+    width: calc(100% - 6px);
+    margin-top: 12px;
+    font-size: 3vw;
+    padding: 1px 3px;
+  }
+
+  select {
+    font-size: 3vw;
+  }
+
+  .status {
+    width: 94%;
+    padding: 5px 3%;
+  }
+
+  .header {
+    font-size: 4vw;
+  }
+
+  .container {
+    margin-top: 12px;
+  }
+
+  .flexbox {
+    flex-direction: column;
+  }
+
+  .kite {
+    width: 80%;
+    padding-bottom: 30px;
+  }
+
+  .arrowFlexboxContainer {
+    flex-direction: row;
+    width: 50%;
+  }
+
+  .arrow {
+    transform: rotate(270deg);
+    width: 30%;
+  }
+
+  .classesContainer {
+    flex-direction: row;
+    width: 100%;
+  }
+
+  .classFlexboxContainer {
+    width: 48%;
+  }
+
+  .classContainer {
+    padding: 10px;
+  }
+
+  .trainFlexboxContainer {
+    width: 60%;
+  }
+
+  .trainContainer {
+    padding: 10px;
+    gap: 12px;
+  }
+
+  .testFlexboxContainer {
+    width: 100%;
+  }
+
+  .testContainer {
+    padding: 10px;
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1599px) {
+  body {
+    padding: 10px;
+    font-size: 1.5vw;
+  }
+
+  button {
+    font-size: 1.5vw;
+  }
+
+  .classNameInput {
+    margin-top: 0;
+    font-size: 1.5vw;
+    width: 20%;
+    padding: 1px 3px;
+  }
+
+  select {
+    font-size: 1.5vw;
+  }
+
+  .status {
+    width: 96%;
+    padding: 5px 2%;
+  }
+
+  .header {
+    font-size: 2vw;
+  }
+
+  .container {
+    margin-top: 15px;
+  }
+
+  .flexbox {
+    flex-direction: row;
+    gap: 30px 0;
+  }
+
+  .kite {
+    width: 35%;
+  }
+
+  .arrowFlexboxContainer {
+    flex-direction: column;
+    width: 5%;
+    aspect-ratio: 1 / 3;
+  }
+
+  .arrow {
+    transform: rotate(180deg);
+  }
+
+  .classesContainer {
+    flex-direction: column;
+    gap: 50px;
+    width: 40%;
+  }
+
+  .classFlexboxContainer {
+    width: 100%;
+  }
+
+  .classContainer {
+    padding: 15px;
+  }
+
+  .trainFlexboxContainer {
+    width: 23%;
+  }
+
+  .trainContainer {
+    padding: 15px;
+    gap: 10px;
+  }
+
+  .testFlexboxContainer {
+    width: 20%;
+  }
+
+  .testContainer {
+    padding: 15px;
+  }
+}
+
+@media (min-width: 1600px) {
 
   body {
     padding: 20px;
@@ -160,14 +357,20 @@ input {
     font-size: 1vw;
   }
 
-  input {
+  .classNameInput {
     margin-top: 0;
     font-size: 1vw;
     width: 15%;
+    padding: 1px 3px;
   }
 
   select {
     font-size: 1vw;
+  }
+
+  .status {
+    width: 98%;
+    padding: 5px 1%;
   }
 
   .header {
@@ -208,7 +411,7 @@ input {
   }
 
   .classContainer {
-    padding: 20px;
+    padding: 15px;
   }
 
   .trainFlexboxContainer {
@@ -216,7 +419,7 @@ input {
   }
 
   .trainContainer {
-    padding: 20px;
+    padding: 15px;
     gap: 10px;
   }
 
@@ -225,6 +428,6 @@ input {
   }
 
   .testContainer {
-    padding: 20px;
+    padding: 15px;
   }
 }

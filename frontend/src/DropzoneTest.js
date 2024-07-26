@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {useDropzone} from 'react-dropzone';
 import styled from 'styled-components';
 import axios from 'axios';
+import heic2any from "heic2any";
 
 const getColor = (props) => {
     if (props.isDragAccept) {
@@ -23,7 +24,7 @@ const Container = styled.div`
   align-items: center;
   padding: 20px;
   border-width: 2px;
-  border-radius: 2px;
+  border-radius: 3px;
   border-color: ${props => getColor(props)};
   border-style: dashed;
   background-color: #fafafa;
@@ -81,6 +82,9 @@ function DropzoneTest ({ className1, className2, visitorId }) {
     const [files, setFiles] = useState([]);
 
     const handleChange = (value) => {
+        const statusElement = document.getElementById('testStatus');
+        statusElement.textContent = "Test läuft ...";
+        statusElement.style.display = "block";
         setXIndex(value);
         startTest(files, value);
     };
@@ -95,21 +99,54 @@ function DropzoneTest ({ className1, className2, visitorId }) {
     } = useDropzone({
         multiple: false,
         accept: {
+            'image/heic': ['.heic'],
+            'image/png': ['.png'],
             'image/jpg': [".jpg", '.jpeg']
         },
-        onDrop: acceptedFiles => {
-            const updatedFiles = acceptedFiles.map(file => Object.assign(file, {
-                preview: URL.createObjectURL(file)
+        onDrop: async acceptedFiles => {
+
+            const statusElement = document.getElementById('testStatus');
+            statusElement.textContent = "Test läuft ...";
+            statusElement.style.display = "block";
+
+            //Option 1
+            //Todo: viel zu langsam --> 5 Sek pro Heic Bild
+            const convertedFiles = await Promise.all(acceptedFiles.map(async file => {
+                const lowerCaseName = file.name.toLowerCase();
+                if (lowerCaseName.endsWith('.heic')) {
+                    try {
+                        const convertedBlob = await heic2any({ blob: file, toType: 'image/jpeg' });
+                        const convertedFile = new File([convertedBlob], lowerCaseName.replace('.heic', '.jpg'), { type: 'image/jpeg' });
+                        return Object.assign(convertedFile, {
+                            preview: URL.createObjectURL(convertedFile)
+                        });
+                    } catch (e) {
+                        console.error('Error converting HEIC to JPG:', e);
+                        return null;
+                    }
+                } else {
+                    return Object.assign(file, {
+                        preview: URL.createObjectURL(file)
+                    });
+                }
             }));
-            setFiles(updatedFiles);
-            startTest(acceptedFiles, xIndex);
+            const validFiles = convertedFiles.filter(file => file !== null);
+            setFiles(validFiles);
+            startTest(validFiles, xIndex);
+
+            //Option 0
+            // const updatedFiles = acceptedFiles.map(file => Object.assign(file, {
+            //     preview: URL.createObjectURL(file)
+            // }));
+            // setFiles(updatedFiles);
+            // startTest(acceptedFiles, xIndex);
         }
     });
 
     const startTest = async (acceptedFiles, index) => {
         const statusElement = document.getElementById('testStatus');
-        statusElement.textContent = "Test läuft ...";
-        statusElement.style.display = "block";
+        // statusElement.textContent = "Test läuft ...";
+        // statusElement.style.display = "block";
         const formData = new FormData();
         formData.append('file', acceptedFiles[0]);
         formData.append("testModel", testModel)
@@ -178,7 +215,7 @@ function DropzoneTest ({ className1, className2, visitorId }) {
                 {isDragActive ? (
                     <p>Datei hier droppen</p>
                 ) : (
-                    <p>JPG-Bild durch Drag and Drop oder Klicken hinzufügen</p>
+                    <p>Bild durch Drag and Drop oder Klicken hinzufügen</p>
                 )}
             </Container>
             <aside style={thumbsContainer}>

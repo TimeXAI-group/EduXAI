@@ -75,8 +75,6 @@ function App() {
         display: 'none',
         backgroundColor: '#FF0000',
         color: '#00FF00',
-        width: '96%',
-        padding: '5px 2% 5px 2%'
     };
 
     const startTraining = async () => {
@@ -137,30 +135,32 @@ function App() {
             <div className="classesContainer">
                 <div className="classFlexboxContainer">
                     <div className="classContainer">
-                        <label>
+                        <label className="classLabel">
                             <b>Name der Klasse: </b>
                             <input
+                                className="classNameInput"
                                 id="className1"
                                 value={className1} // Binden Sie den Wert des Input-Felds an den Zustand
                                 onChange={e => setClassName1(e.target.value)} // Event-Handler für Änderungen im Input-Feld
                             />
                         </label>
                         <DropzoneTrain setButtonState={setButtonState} className="class1" visitorId={visitorId} />
-                        <div id="uploadStatus1" style={status}></div>
+                        <div className="status" id="uploadStatus1" style={status}></div>
                     </div>
                 </div>
                 <div className="classFlexboxContainer">
                     <div className="classContainer">
-                        <label>
+                        <label className="classLabel">
                             <b>Name der Klasse: </b>
                             <input
+                                className="classNameInput"
                                 id="className2"
                                 value={className2} // Binden Sie den Wert des Input-Felds an den Zustand
                                 onChange={e => setClassName2(e.target.value)} // Event-Handler für Änderungen im Input-Feld
                             />
                         </label>
                         <DropzoneTrain setButtonState={setButtonState} className="class2" visitorId={visitorId}/>
-                        <div id="uploadStatus2" style={status}></div>
+                        <div className="status" id="uploadStatus2" style={status}></div>
                     </div>
                 </div>
             </div>
@@ -209,7 +209,7 @@ function App() {
                         </select>
                     </label>
                     <button disabled={isButtonDisabled} id="startTraining" onClick={startTraining}>Training starten</button>
-                    <div id="trainStatus" style={status}>{trainStatus}</div>
+                    <div className="status" id="trainStatus" style={status}>{trainStatus}</div>
                 </div>
             </div>
             <div className="arrowFlexboxContainer arrowFlexboxContainerB">
@@ -219,7 +219,7 @@ function App() {
                 <div className="testContainer">
                     <b className="header">Test</b>
                     <DropzoneTest className1={className1} className2={className2} visitorId={visitorId}/>
-                    <div id="testStatus" style={status}></div>
+                    <div className="status" id="testStatus" style={status}></div>
                     {/*<label>*/}
                     {/*    <b>Methode: </b>*/}
                     {/*    <select style={button} value={method} onChange={e => setMethod(e.target.value)}>*/}
