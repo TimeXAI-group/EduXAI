@@ -92,3 +92,7 @@ def start_test(path, test_model, x_index):
     # plt.savefig(os.path.join(path, "sign_x.jpg"), bbox_inches='tight')
 
     return index, score[0][index]
+
+
+# if __name__ == '__main__':
+#     print(start_test("069e0a7249f84f7f276bd051bbb3d687", test_model="fruits360", x_index="predicted"))

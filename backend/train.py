@@ -103,3 +103,10 @@ def create_pretrained_fruits360_model(epochs, batch_size, learn_rate):
 def create_pretrained_vgg16fruits360_model(epochs, batch_size, learn_rate):
     start_training(path="pretraining", epochs=epochs, batch_size=batch_size, learn_rate=learn_rate, pretrained="vgg16",
                    model_save_path=os.path.join("pretraining", "vgg16fruits360_model.h5"))
+
+
+# if __name__ == '__main__':
+#     create_pretrained_fruits360_model(epochs=10, batch_size=8, learn_rate=0.001)
+    # create_pretrained_vgg16fruits360_model(epochs=50, batch_size=64, learn_rate=0.0001)
+    # start_training(path="069e0a7249f84f7f276bd051bbb3d687", epochs=3, batch_size=4, learn_rate=0.0001, pretrained="fruits360",
+    #                model_save_path=os.path.join("069e0a7249f84f7f276bd051bbb3d687", "model.h5"))
