@@ -25,6 +25,7 @@ input {
 
 select {
   border-radius: 3px;
+  max-width: 100%;
 }
 
 .status {
@@ -160,7 +161,7 @@ select {
   }
 
   .trainFlexboxContainer {
-    width: 60%;
+    width: 70%;
   }
 
   .trainContainer {

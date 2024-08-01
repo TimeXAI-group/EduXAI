@@ -3,7 +3,7 @@ import {useDropzone} from 'react-dropzone';
 import styled from 'styled-components';
 import axios from 'axios';
 import "./Dropzone.css"
-import heic2any from 'heic2any';
+
 
 const getColor = (props) => {
     if (props.isDragAccept) {
@@ -59,6 +59,7 @@ const button = {
 };
 
 const DropzoneTrain = ({ setButtonState, className, visitorId }) => {
+    const asideID = "aside"+className.slice(-1);
     const [files, setFiles] = useState([]);
     const {
         getRootProps,
@@ -76,11 +77,14 @@ const DropzoneTrain = ({ setButtonState, className, visitorId }) => {
         onDrop: async acceptedFiles => {
 
             let statusElement;
+            // let countOfFilesInOtherDropzone;
             if (className === "class1") {
                 statusElement = document.getElementById('uploadStatus1');
+                // countOfFilesInOtherDropzone = document.getElementById("aside2").childElementCount;
             }
             else {
                 statusElement = document.getElementById('uploadStatus2');
+                // countOfFilesInOtherDropzone = document.getElementById("aside1").childElementCount;
             }
 
             if (acceptedFiles.length < 10) {
@@ -96,37 +100,79 @@ const DropzoneTrain = ({ setButtonState, className, visitorId }) => {
             statusElement.style.display = "block";
             setButtonState(true)
 
-            //Option 1
-            //Todo: viel zu langsam --> 5 Sek pro Heic Bild
-            const convertedFiles = await Promise.all(acceptedFiles.map(async file => {
-                const lowerCaseName = file.name.toLowerCase();
-                if (lowerCaseName.endsWith('.heic')) {
-                    try {
-                        const convertedBlob = await heic2any({ blob: file, toType: 'image/jpeg' });
-                        const convertedFile = new File([convertedBlob], lowerCaseName.replace('.heic', '.jpg'), { type: 'image/jpeg' });
-                        return Object.assign(convertedFile, {
-                            preview: URL.createObjectURL(convertedFile)
-                        });
-                    } catch (e) {
-                        console.error('Error converting HEIC to JPG:', e);
-                        return null;
-                    }
-                } else {
+            const processFile = async (file) => {
+
+                const resizeImage = (blob) => {
+                    return new Promise((resolve, reject) => {
+                        const img = new Image();
+                        const reader = new FileReader();
+
+                        reader.onload = (event) => {
+                            img.src = event.target.result;
+
+                            img.onload = () => {
+                                const canvas = document.createElement('canvas');
+                                const ctx = canvas.getContext('2d');
+                                canvas.width = 224;
+                                canvas.height = 224;
+
+                                ctx.drawImage(img, 0, 0, 224, 224);
+
+                                canvas.toBlob((resizedBlob) => {
+                                    if (resizedBlob) {
+                                        resolve(resizedBlob);
+                                    } else {
+                                        reject(new Error('Canvas toBlob failed'));
+                                    }
+                                }, 'image/jpeg', 1);
+                            };
+                        };
+
+                        reader.readAsDataURL(blob);
+                    });
+                };
+
+                try {
+                    const file_name = file.name;
+                    const file_type = file.type;
+                    file = await resizeImage(file);
+                    file = new File([file], file_name, { type: file_type});
                     return Object.assign(file, {
+                        path: file_name,
                         preview: URL.createObjectURL(file)
                     });
+                } catch (e) {
+                    console.error('Error processing file:', e);
+                    return null;
                 }
-            }));
-            const validFiles = convertedFiles.filter(file => file !== null);
-            setFiles(validFiles);
-            handleUpload(validFiles);
+            };
 
-            //Option 0
-            // const updatedFiles = acceptedFiles.map(file => Object.assign(file, {
-            //     preview: URL.createObjectURL(file)
-            // }));
-            // setFiles(updatedFiles);
-            // handleUpload(acceptedFiles);
+            // const flexbox = document.getElementById("flexbox")
+            // const flex_direction = window.getComputedStyle(flexbox).getPropertyValue("flex-direction")
+            // if (flex_direction === "row") {
+            //     const difference = countOfFilesInOtherDropzone - validFiles.length
+            //     console.log(difference)
+            // }
+
+            const heicImages = acceptedFiles.filter(file => file.type === "image/heic")
+            const validHEICImages = heicImages.filter(file => file !== null);
+            const notHEICImages = acceptedFiles.filter(file => file.type !== "image/heic")
+            const convertedNotHEICImages = await Promise.all(notHEICImages.map(processFile));
+            const validNotHEICImages = convertedNotHEICImages.filter(file => file !== null);
+
+            let previewHEICImages = [];
+            for (let i = 0; i < validHEICImages.length; i++) {
+                const response = await fetch("HEIC_demo.png");
+                const buffer = await response.arrayBuffer();
+                const pngFile = new File([buffer], 'HEIC_demo.'+String(i)+'png', { type: 'image/png'});
+                previewHEICImages[i] = Object.assign(pngFile, {
+                    path: "HEIC_demo.png",
+                    preview: URL.createObjectURL(pngFile)
+                });
+            }
+            setFiles(validNotHEICImages.concat(previewHEICImages));
+            
+            await handleUpload(validNotHEICImages.concat(validHEICImages));
         }
     });
 
@@ -152,7 +198,7 @@ const DropzoneTrain = ({ setButtonState, className, visitorId }) => {
         });
 
         try {
-            const response = await axios.post('https://xai.mnd.thm.de:3000/uploadTrain', formData, {
+            const response = await axios.post('http://localhost:5000/uploadTrain', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
@@ -182,6 +228,7 @@ const DropzoneTrain = ({ setButtonState, className, visitorId }) => {
         <div className="thumb" key={file.name}>
             <div style={thumbInner}>
                 <img
+                    className="previewImage"
                     src={file.preview}
                     style={img}
                     // Revoke data uri after image is loaded
@@ -202,7 +249,7 @@ const DropzoneTrain = ({ setButtonState, className, visitorId }) => {
                     <p>Bilder durch Drag and Drop oder Klicken hinzufügen</p>
                 )}
             </Container>
-            <aside style={thumbsContainer}>
+            <aside id={asideID} style={thumbsContainer}>
                 {thumbs}
             </aside>
             {/*<button style={button} onClick={handleUpload}>Bilder hochladen</button>*/}

@@ -2,7 +2,6 @@ import React, {useState} from 'react';
 import {useDropzone} from 'react-dropzone';
 import styled from 'styled-components';
 import axios from 'axios';
-import heic2any from "heic2any";
 
 const getColor = (props) => {
     if (props.isDragAccept) {
@@ -80,13 +79,15 @@ function DropzoneTest ({ className1, className2, visitorId }) {
     const [testModel, setTestModel] = useState('own');
     const [xIndex, setXIndex] = useState('predicted');
     const [files, setFiles] = useState([]);
+    const [previewFiles, setPreviewFiles] = useState([]);
+
 
     const handleChange = (value) => {
         const statusElement = document.getElementById('testStatus');
         statusElement.textContent = "Test läuft ...";
         statusElement.style.display = "block";
         setXIndex(value);
-        startTest(files, value);
+        startTest(files[0], value);
     };
 
     const {
@@ -109,30 +110,76 @@ function DropzoneTest ({ className1, className2, visitorId }) {
             statusElement.textContent = "Test läuft ...";
             statusElement.style.display = "block";
 
-            //Option 1
-            //Todo: viel zu langsam --> 5 Sek pro Heic Bild
-            const convertedFiles = await Promise.all(acceptedFiles.map(async file => {
-                const lowerCaseName = file.name.toLowerCase();
-                if (lowerCaseName.endsWith('.heic')) {
-                    try {
-                        const convertedBlob = await heic2any({ blob: file, toType: 'image/jpeg' });
-                        const convertedFile = new File([convertedBlob], lowerCaseName.replace('.heic', '.jpg'), { type: 'image/jpeg' });
-                        return Object.assign(convertedFile, {
-                            preview: URL.createObjectURL(convertedFile)
-                        });
-                    } catch (e) {
-                        console.error('Error converting HEIC to JPG:', e);
-                        return null;
-                    }
-                } else {
+            const processFile = async (file) => {
+
+                const resizeImage = (blob) => {
+                    return new Promise((resolve, reject) => {
+                        const img = new Image();
+                        const reader = new FileReader();
+
+                        reader.onload = (event) => {
+                            img.src = event.target.result;
+
+                            img.onload = () => {
+                                const canvas = document.createElement('canvas');
+                                const ctx = canvas.getContext('2d');
+                                canvas.width = 224;
+                                canvas.height = 224;
+
+                                ctx.drawImage(img, 0, 0, 224, 224);
+
+                                canvas.toBlob((resizedBlob) => {
+                                    if (resizedBlob) {
+                                        resolve(resizedBlob);
+                                    } else {
+                                        reject(new Error('Canvas toBlob failed'));
+                                    }
+                                }, 'image/jpeg', 1);
+                            };
+                        };
+
+                        reader.readAsDataURL(blob);
+                    });
+                };
+
+                try {
+                    const file_name = file.name;
+                    const file_type = file.type;
+                    file = await resizeImage(file);
+                    file = new File([file], file_name, { type: file_type});
                     return Object.assign(file, {
+                        path: file_name,
                         preview: URL.createObjectURL(file)
                     });
+                } catch (e) {
+                    console.error('Error processing file:', e);
+                    return null;
                 }
-            }));
-            const validFiles = convertedFiles.filter(file => file !== null);
-            setFiles(validFiles);
-            startTest(validFiles, xIndex);
+            };
+
+            let file = acceptedFiles[0]
+            let demo_file;
+            if (file != null) {
+                if (file.type === "image/heic") {
+                    const response = await fetch("HEIC_demo.png");
+                    const buffer = await response.arrayBuffer();
+                    const pngFile = new File([buffer], 'HEIC_demo.png', { type: 'image/png'});
+                    demo_file = Object.assign(pngFile, {
+                        path: "HEIC_demo.png",
+                        preview: URL.createObjectURL(pngFile)
+                    });
+                }
+                else {
+                    file = await processFile(file);
+                    demo_file = file;
+                }
+                setPreviewFiles([demo_file])
+                setFiles([file])
+                startTest(file, "predicted");
+            }
+            else {
+                statusElement.textContent = "Image is null";
+            }
 
             //Option 0
             // const updatedFiles = acceptedFiles.map(file => Object.assign(file, {
@@ -143,18 +190,18 @@ function DropzoneTest ({ className1, className2, visitorId }) {
         }
     });
 
-    const startTest = async (acceptedFiles, index) => {
+    const startTest = async (acceptedFile, index) => {
         const statusElement = document.getElementById('testStatus');
         // statusElement.textContent = "Test läuft ...";
         // statusElement.style.display = "block";
         const formData = new FormData();
-        formData.append('file', acceptedFiles[0]);
+        formData.append('file', acceptedFile);
         formData.append("testModel", testModel)
         formData.append("xIndex", index)
         formData.append("visitorId", visitorId)
 
         try {
-            const response = await axios.post('https://xai.mnd.thm.de:3000/uploadTest', formData, {
+            const response = await axios.post('http://localhost:5000/uploadTest', formData, {
             });
             console.log(response.data);
             if (response.data['message']==='Success') {
@@ -168,7 +215,7 @@ function DropzoneTest ({ className1, className2, visitorId }) {
                 setProbability(response.data["probability"])
 
                 //Todo: Start Übergangslösung
-                fetch('https://xai.mnd.thm.de:3000/requestHeatmap?method=gradCam&visitorId='+visitorId)
+                fetch('http://localhost:5000/requestHeatmap?method=gradCam&visitorId='+visitorId)
                     .then(response => {
                         if (!response.ok) {
                             throw new Error('Network response was not ok');
@@ -195,7 +242,7 @@ function DropzoneTest ({ className1, className2, visitorId }) {
         }
     };
 
-    const thumbs = files.map(file => (
+    const thumbs = previewFiles.map(file => (
         <div style={thumb} key={file.name}>
             <div style={thumbInner}>
                 <img
