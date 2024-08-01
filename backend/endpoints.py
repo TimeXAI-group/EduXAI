@@ -4,12 +4,21 @@ from flask_cors import CORS
 import os
 from train import start_training
 from test import start_test
+from PIL import Image
+import pillow_heif
+pillow_heif.register_heif_opener()
 
 app = Flask(__name__)
 CORS(app)
 
 TRAIN_FOLDER = './train_data'
 app.config['UPLOAD_FOLDER'] = TRAIN_FOLDER
+
+
+def convert_and_resize_image(image_file, size=(224, 224)):
+    image = Image.open(image_file)
+    image = image.resize(size, Image.Resampling.LANCZOS)
+    return image
 
 
 @app.route('/test', methods=['GET'])
@@ -46,8 +55,15 @@ def upload_train():
             if file.filename == '':
                 continue
 
-            filename = os.path.join(path, file.filename)
-            file.save(filename)
+            if str.lower(file.filename).endswith(".heic"):
+                image = convert_and_resize_image(file)
+                filename = os.path.splitext(file.filename)[0] + ".jpg"
+                save_path = os.path.join(path, filename)
+                image.save(save_path, format='JPEG')
+
+            else:
+                filename = os.path.join(path, file.filename)
+                file.save(filename)
 
         return jsonify({'message': 'Success'}), 200
 
@@ -93,7 +109,11 @@ def test():
         if not os.path.exists(visitor_id):
             os.makedirs(visitor_id)
 
-        file.save(os.path.join(visitor_id, "test.jpg"))
+        if str.lower(file.filename).endswith(".heic"):
+            image = convert_and_resize_image(file)
+            image.save(os.path.join(visitor_id, "test.jpg"), format='JPEG')
+        else:
+            file.save(os.path.join(visitor_id, "test.jpg"))
 
         predicted_class, probability = start_test(path=visitor_id, test_model=test_model, x_index=x_index)
 
