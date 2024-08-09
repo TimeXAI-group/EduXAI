@@ -89,7 +89,7 @@ function App() {
         formData.append('visitorId', visitorId);
 
         try {
-            const response = await axios.post('http://localhost:5000/startTraining', formData, {
+            const response = await axios.post('https://xai.mnd.thm.de:3000/startTraining', formData, {
             });
             console.log(response.data);
             if (response.data['message']==='Success') {

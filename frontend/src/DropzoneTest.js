@@ -201,7 +201,7 @@ function DropzoneTest ({ className1, className2, visitorId }) {
         formData.append("visitorId", visitorId)
 
         try {
-            const response = await axios.post('http://localhost:5000/uploadTest', formData, {
+            const response = await axios.post('https://xai.mnd.thm.de:3000/uploadTest', formData, {
             });
             console.log(response.data);
             if (response.data['message']==='Success') {
@@ -215,7 +215,7 @@ function DropzoneTest ({ className1, className2, visitorId }) {
                 setProbability(response.data["probability"])
 
                 //Todo: Start Übergangslösung
-                fetch('http://localhost:5000/requestHeatmap?method=gradCam&visitorId='+visitorId)
+                fetch('https://xai.mnd.thm.de:3000/requestHeatmap?method=gradCam&visitorId='+visitorId)
                     .then(response => {
                         if (!response.ok) {
                             throw new Error('Network response was not ok');

@@ -198,7 +198,7 @@ const DropzoneTrain = ({ setButtonState, className, visitorId }) => {
         });
 
         try {
-            const response = await axios.post('http://localhost:5000/uploadTrain', formData, {
+            const response = await axios.post('https://xai.mnd.thm.de:3000/uploadTrain', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
