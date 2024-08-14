@@ -4,15 +4,14 @@ import styled from 'styled-components';
 import axios from 'axios';
 import "./Dropzone.css"
 
-
 const getColor = (props) => {
-    if (props.isDragAccept) {
-        return '#00e676';
+    if (props.$isDragAccept) {
+        return '#2196f3';
     }
-    if (props.isDragReject) {
-        return '#ff1744';
+    if (props.$isDragReject) {
+        return '#2196f3';
     }
-    if (props.isFocused) {
+    if (props.$isFocused) {
         return '#2196f3';
     }
     return '#eeeeee';
@@ -54,11 +53,11 @@ const img = {
     // height: ''
 };
 
-const button = {
-    marginTop: 10,
-};
+// const button = {
+//     marginTop: 10,
+// };
 
-const DropzoneTrain = ({ setButtonState, className, visitorId }) => {
+const DropzoneTrain = ({ setTrainButtonState, className, visitorId }) => {
     const asideID = "aside"+className.slice(-1);
     const [files, setFiles] = useState([]);
     const {
@@ -90,15 +89,15 @@ const DropzoneTrain = ({ setButtonState, className, visitorId }) => {
             if (acceptedFiles.length < 10) {
                 setFiles([])
 
-                statusElement.textContent = "Mindestens 10 Dateien hochladen!";
+                statusElement.textContent = "Mindestens 10 Dateien hochladen";
                 statusElement.style.display = "block";
-                setButtonState(true)
+                setTrainButtonState(true)
                 return;
             }
 
             statusElement.textContent = "Upload läuft ...";
             statusElement.style.display = "block";
-            setButtonState(true)
+            setTrainButtonState(true)
 
             const processFile = async (file) => {
 
@@ -204,16 +203,26 @@ const DropzoneTrain = ({ setButtonState, className, visitorId }) => {
                 }
             });
             console.log(response.data);
-            if (response.data['message']==='Success') {
-                statusElement.textContent = "Upload abgeschlossen";
-                if (otherStatusElement.textContent === "Upload abgeschlossen") {
-                    setButtonState(false)
-                }
+            statusElement.textContent = response.data['message'];
+            if (otherStatusElement.textContent === response.data['message']) {
+                setTrainButtonState(false);
             }
         } catch (error) {
-            console.error('Error uploading file: ', error);
-            statusElement.textContent = "Upload fehlgeschlagen";
-            setButtonState(true)
+            if (error.response) {
+                console.error('Fehler:', error.response.data['message']);
+                console.error('Status:', error.response.status);
+                if (error.response.data['exception'] !== undefined) {
+                    console.error('Exception:', error.response.data['exception']);
+                }
+                statusElement.textContent = error.response.data['message'];
+            } else if (error.request) {
+                console.error('Keine Antwort vom Server erhalten:', error.request);
+                statusElement.textContent = "Server nicht erreichbar";
+            } else {
+                console.error('Ein Fehler ist aufgetreten:', error.message);
+                statusElement.textContent = "Upload fehlgeschlagen";
+            }
+            setTrainButtonState(true)
         }
     };
 
@@ -241,7 +250,12 @@ const DropzoneTrain = ({ setButtonState, className, visitorId }) => {
 
     return (
         <section className="container">
-            <Container {...getRootProps({className: 'dropzone', isFocused, isDragAccept, isDragReject})}>
+            <Container {...getRootProps({
+                className: 'dropzone',
+                $isFocused: isFocused,
+                $isDragAccept: isDragAccept,
+                $isDragReject: isDragReject
+            })}>
                 <input {...getInputProps()} />
                 {isDragActive ? (
                     <p>Dateien hier droppen</p>

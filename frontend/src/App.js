@@ -9,10 +9,6 @@ import FingerprintJS from '@fingerprintjs/fingerprintjs'
 
 
 function App() {
-
-    // Initialize the agent at application startup.
-    const fpPromise = FingerprintJS.load()
-
     const [visitorId, setVisitorId] = useState(null);
     const [className1, setClassName1] = useState('Klasse1');
     const [className2, setClassName2] = useState('Klasse2');
@@ -21,27 +17,47 @@ function App() {
     const [learnRate, setLearnRate] = useState('0.0001')
     const [pretrained, setPretrained] = useState('vgg16')
     const [trainStatus, setTrainStatus] = useState('')
-    const [method, setMethod] = useState('gradCam')
-    const [isButtonDisabled, setIsButtonDisabled] = useState(true);
+    // const [method, setMethod] = useState('gradCam')
+    const [isTrainButtonDisabled, setIsTrainButtonDisabled] = useState(true);
+    const [isResultsButtonDisabled, setIsResultsButtonDisabled] = useState(true);
+    const [resultsButtonText, setResultsButtonText] = useState("Trainingsverlauf einblenden")
 
     useEffect(() => {
-        fpPromise
-            .then(fp => fp.get())
-            .then(result => {
-                setVisitorId(result.visitorId);
-            })
-            .catch(error => {
-                console.error('Error getting visitorId:', error);
+        const initializeFingerprint = () => {
+            FingerprintJS.load()
+                .then(fp => fp.get())
+                .then(result => {
+                    setVisitorId(result.visitorId);
+                })
+                .catch(error => {
+                    console.error('Error getting visitorId:', error);
+                });
+            removeListeners();
+        }
+        const events = ['click', 'keydown', 'touchstart', 'scroll'];
+
+        const removeListeners = () => {
+            events.forEach(event => {
+                window.removeEventListener(event, initializeFingerprint);
             });
+        };
+
+        events.forEach(event => {
+            window.addEventListener(event, initializeFingerprint, { once: true });
+        });
+
+        return () => {
+            removeListeners();
+        };
     }, []);
 
-    const setButtonState = (value) => {
-        setIsButtonDisabled(value);
+    const setTrainButtonState = (value) => {
+        setIsTrainButtonDisabled(value);
     };
 
-    const button = {
-        margin: "10px 0 0 0"
-    }
+    // const button = {
+    //     margin: "10px 0 0 0"
+    // }
     const thumbsContainer = {
         display: 'none',
         flexDirection: 'row',
@@ -76,8 +92,28 @@ function App() {
         backgroundColor: '#FF0000',
         color: '#00FF00',
     };
+    const resultsContainerStyle = {
+        display: 'none',
+    }
+
+    const showOrHideResults = () => {
+        const resultsContainer = document.getElementById("resultsContainer");
+        if (resultsContainer.style.display === "block") {
+            resultsContainer.style.display = "none";
+            setResultsButtonText("Trainingsverlauf einblenden")
+        }
+        else {
+            resultsContainer.style.display = "block";
+            setResultsButtonText("Trainingsverlauf ausblenden")
+        }
+    }
 
     const startTraining = async () => {
+        const resultsContainer = document.getElementById("resultsContainer");
+        resultsContainer.style.display = "none";
+        setResultsButtonText("Ergebnisse einblenden")
+        setIsResultsButtonDisabled(true)
+
         const statusElement = document.getElementById('trainStatus');
         statusElement.style.display = "block";
         setTrainStatus("Training läuft ...");
@@ -92,42 +128,113 @@ function App() {
             const response = await axios.post('https://xai.mnd.thm.de:3000/startTraining', formData, {
             });
             console.log(response.data);
-            if (response.data['message']==='Success') {
-                setTrainStatus("Training abgeschlossen");
+            setTrainStatus(response.data['message']);
+
+            const resultsTableBody = document.getElementById("resultsTableBody");
+            resultsTableBody.innerHTML = ""
+            const tr = document.createElement("tr")
+            const thEpoch = document.createElement("td")
+            thEpoch.textContent = "Epoche"
+            tr.appendChild(thEpoch)
+            const thAcc = document.createElement("td")
+            thAcc.textContent = "Acc"
+            tr.appendChild(thAcc)
+            const thLoss = document.createElement("td")
+            thLoss.textContent = "Loss"
+            tr.appendChild(thLoss)
+            const thValAcc = document.createElement("td")
+            thValAcc.textContent = "ValAcc"
+            tr.appendChild(thValAcc)
+            const thValLoss = document.createElement("td")
+            thValLoss.textContent = "ValLoss"
+            tr.appendChild(thValLoss)
+            resultsTableBody.appendChild(tr)
+            for (let i=0;i<response.data['accuracy'].length;i++) {
+                const tr = document.createElement("tr")
+                const thEpoch = document.createElement("td")
+                thEpoch.textContent = i
+                tr.appendChild(thEpoch)
+                const thAcc = document.createElement("td")
+                thAcc.textContent = response.data['accuracy'][i]
+                tr.appendChild(thAcc)
+                const thLoss = document.createElement("td")
+                thLoss.textContent = response.data['loss'][i]
+                tr.appendChild(thLoss)
+                const thValAcc = document.createElement("td")
+                thValAcc.textContent = response.data['val_accuracy'][i]
+                tr.appendChild(thValAcc)
+                const thValLoss = document.createElement("td")
+                thValLoss.textContent = response.data['val_loss'][i]
+                tr.appendChild(thValLoss)
+                resultsTableBody.appendChild(tr)
             }
+            setIsResultsButtonDisabled(false)
         } catch (error) {
-            console.error('Error uploading file: ', error);
-            setTrainStatus("Training fehlgeschlagen");
+            if (error.response) {
+                console.error('Fehler:', error.response.data['message']);
+                console.error('Status:', error.response.status);
+                if (error.response.data['exception'] !== undefined) {
+                    console.error('Exception:', error.response.data['exception']);
+                }
+                setTrainStatus(error.response.data['message']);
+            } else if (error.request) {
+                console.error('Keine Antwort vom Server erhalten:', error.request);
+                setTrainStatus("Server nicht erreichbar");
+            } else {
+                console.error('Ein Fehler ist aufgetreten:', error.message);
+                setTrainStatus("Training fehlgeschlagen");
+            }
         }
     };
 
-    const requestHeatmap = async () => {
-        fetch('https://xai.mnd.thm.de:3000/requestHeatmap?method=' + method + '&visitorId='+ visitorId)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.blob(); // Lese die Antwort als Blob (Bild)
-            })
-            .then(blob => {
-                // Erstelle ein URL-Objekt für das Bild
-                const imgUrl = URL.createObjectURL(blob);
-
-                // Setze das Bild in ein HTML-Element mit der ID "heatmapImage"
-                const imgElement = document.getElementById('heatmap');
-                imgElement.src = imgUrl;
-                const imgContainerElement = document.getElementById('heatmapContainer');
-                imgContainerElement.style.display = "flex";
-                const imgButtonElement = document.getElementById('heatmapButton');
-                imgButtonElement.style.margin = "10px 0 10px 0"
-            })
-            .catch(error => {
-                console.error('Error fetching heatmap image:', error);
-            });
-    };
+    // const requestHeatmap = async () => {
+    //     const statusElement = document.getElementById('testStatus');
+    //     axios.get('https://xai.mnd.thm.de:3000/requestHeatmap', {
+    //         params: {
+    //             method: 'gradCam',
+    //             visitorId: visitorId
+    //         },
+    //         responseType: 'blob'
+    //     })
+    //         .then(response => {
+    //             const imgUrl = URL.createObjectURL(response.data);
+    //             const imgElement = document.getElementById('heatmap');
+    //             imgElement.src = imgUrl;
+    //             const imgContainerElement = document.getElementById('heatmapContainer');
+    //             imgContainerElement.style.display = "flex";
+    //             // const imgButtonElement = document.getElementById('heatmapButton');
+    //             // imgButtonElement.style.margin = "10px 0 10px 0"
+    //         })
+    //         .catch(error => {
+    //             if (error.response && error.response.data) {
+    //                 const blob = error.response.data;
+    //                 const reader = new FileReader();
+    //                 reader.onload = () => {
+    //                     const text = reader.result;
+    //                     try {
+    //                         const json = JSON.parse(text);
+    //                         console.error('Fehler:', json['message']);
+    //                         console.error('Status:', error.response.status);
+    //                         if (json['exception'] !== undefined) {
+    //                             console.error('Exception:', json['exception']);
+    //                         }
+    //                         statusElement.textContent = json['message'];
+    //                     } catch (e) {
+    //                         console.error('Fehler beim Parsen der Fehlermeldung:', text);
+    //                     }
+    //                 };
+    //                 reader.readAsText(blob);
+    //             } else if (error.request) {
+    //                 console.error('Keine Antwort vom Server erhalten:', error.request);
+    //                 statusElement.textContent = "Server nicht erreichbar";
+    //             } else {
+    //                 console.error('Ein Fehler ist aufgetreten:', error.message);
+    //                 statusElement.textContent = "Heatmap anfordern fehlgeschlagen";
+    //             }
+    //         });
+    // };
 
     return (
-        <body>
         <div id="flexbox" className="flexbox">
             <div className="kiteContainer">
                 <img className="kite" src={logo} alt="EduXAI Logo" />
@@ -144,7 +251,7 @@ function App() {
                                 onChange={e => setClassName1(e.target.value)} // Event-Handler für Änderungen im Input-Feld
                             />
                         </label>
-                        <DropzoneTrain setButtonState={setButtonState} className="class1" visitorId={visitorId} />
+                        <DropzoneTrain setTrainButtonState={setTrainButtonState} className="class1" visitorId={visitorId} />
                         <div className="status" id="uploadStatus1" style={status}></div>
                     </div>
                 </div>
@@ -159,7 +266,7 @@ function App() {
                                 onChange={e => setClassName2(e.target.value)} // Event-Handler für Änderungen im Input-Feld
                             />
                         </label>
-                        <DropzoneTrain setButtonState={setButtonState} className="class2" visitorId={visitorId}/>
+                        <DropzoneTrain setTrainButtonState={setTrainButtonState} className="class2" visitorId={visitorId}/>
                         <div className="status" id="uploadStatus2" style={status}></div>
                     </div>
                 </div>
@@ -208,8 +315,14 @@ function App() {
                             <option value="false">Nein</option>
                         </select>
                     </label>
-                    <button disabled={isButtonDisabled} id="startTraining" onClick={startTraining}>Training starten</button>
+                    <button disabled={isTrainButtonDisabled} id="startTraining" onClick={startTraining}>Training starten</button>
                     <div className="status" id="trainStatus" style={status}>{trainStatus}</div>
+                    <button disabled={isResultsButtonDisabled} id="showResults" onClick={showOrHideResults}>{resultsButtonText}</button>
+                    <div id="resultsContainer" style={resultsContainerStyle}>
+                        <table id="resultsTable">
+                            <tbody id="resultsTableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
             <div className="arrowFlexboxContainer arrowFlexboxContainerB">
@@ -243,7 +356,6 @@ function App() {
                 </div>
             </div>
         </div>
-        </body>
     );
 }
 

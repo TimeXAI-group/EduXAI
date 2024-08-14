@@ -4,13 +4,13 @@ import styled from 'styled-components';
 import axios from 'axios';
 
 const getColor = (props) => {
-    if (props.isDragAccept) {
-        return '#00e676';
+    if (props.$isDragAccept) {
+        return '#2196f3';
     }
-    if (props.isDragReject) {
-        return '#ff1744';
+    if (props.$isDragReject) {
+        return '#2196f3';
     }
-    if (props.isFocused) {
+    if (props.$isFocused) {
         return '#2196f3';
     }
     return '#eeeeee';
@@ -65,9 +65,9 @@ const img = {
     // height: ''
 };
 
-const button = {
-    margin: '10px 0 10px 0'
-}
+// const button = {
+//     margin: '10px 0 10px 0'
+// }
 
 const select = {
     marginBottom: '10px'
@@ -76,7 +76,7 @@ const select = {
 function DropzoneTest ({ className1, className2, visitorId }) {
     const [predictedClass, setPredictedClass] = useState('');
     const [probability, setProbability] = useState('');
-    const [testModel, setTestModel] = useState('own');
+    // const [testModel, setTestModel] = useState('own');
     const [xIndex, setXIndex] = useState('predicted');
     const [files, setFiles] = useState([]);
     const [previewFiles, setPreviewFiles] = useState([]);
@@ -178,7 +178,7 @@ function DropzoneTest ({ className1, className2, visitorId }) {
                 startTest(file, "predicted");
             }
             else {
-                statusElement.textContent = "Image is null";
+                statusElement.textContent = "Ungültiges Bild";
             }
 
             //Option 0
@@ -196,7 +196,7 @@ function DropzoneTest ({ className1, className2, visitorId }) {
         // statusElement.style.display = "block";
         const formData = new FormData();
         formData.append('file', acceptedFile);
-        formData.append("testModel", testModel)
+        formData.append("testModel", "own")
         formData.append("xIndex", index)
         formData.append("visitorId", visitorId)
 
@@ -204,41 +204,76 @@ function DropzoneTest ({ className1, className2, visitorId }) {
             const response = await axios.post('https://xai.mnd.thm.de:3000/uploadTest', formData, {
             });
             console.log(response.data);
-            if (response.data['message']==='Success') {
-                statusElement.textContent = "Test abgeschlossen";
-                if (response.data["prediction"] === "1") {
-                    setPredictedClass(document.getElementById('className1').value)
-                }
-                else {
-                    setPredictedClass(document.getElementById('className2').value)
-                }
-                setProbability(response.data["probability"])
-
-                //Todo: Start Übergangslösung
-                fetch('https://xai.mnd.thm.de:3000/requestHeatmap?method=gradCam&visitorId='+visitorId)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response.blob(); // Lese die Antwort als Blob (Bild)
-                    })
-                    .then(blob => {
-                        const imgUrl = URL.createObjectURL(blob);
-                        const imgElement = document.getElementById('heatmap');
-                        imgElement.src = imgUrl;
-                        const imgContainerElement = document.getElementById('heatmapContainer');
-                        imgContainerElement.style.display = "flex";
-                        // const imgButtonElement = document.getElementById('heatmapButton');
-                        // imgButtonElement.style.margin = "10px 0 10px 0"
-                    })
-                    .catch(error => {
-                        console.error('Error fetching heatmap image:', error);
-                    });
-                //Todo: Ende Übergangslösung
+            statusElement.textContent = response.data['message'];
+            if (response.data["prediction"] === "1") {
+                setPredictedClass(document.getElementById('className1').value)
             }
+            else {
+                setPredictedClass(document.getElementById('className2').value)
+            }
+            setProbability(response.data["probability"])
+
+            //Todo: Start Übergangslösung
+            axios.get('https://xai.mnd.thm.de:3000/requestHeatmap', {
+                params: {
+                    method: 'gradCam',
+                    visitorId: visitorId
+                },
+                responseType: 'blob'
+            })
+                .then(response => {
+                    const imgUrl = URL.createObjectURL(response.data);
+                    const imgElement = document.getElementById('heatmap');
+                    imgElement.src = imgUrl;
+                    const imgContainerElement = document.getElementById('heatmapContainer');
+                    imgContainerElement.style.display = "flex";
+                    // const imgButtonElement = document.getElementById('heatmapButton');
+                    // imgButtonElement.style.margin = "10px 0 10px 0"
+                })
+                .catch(error => {
+                    if (error.response && error.response.data) {
+                        const blob = error.response.data;
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            const text = reader.result;
+                            try {
+                                const json = JSON.parse(text);
+                                console.error('Fehler:', json['message']);
+                                console.error('Status:', error.response.status);
+                                if (json['exception'] !== undefined) {
+                                    console.error('Exception:', json['exception']);
+                                }
+                                statusElement.textContent = json['message'];
+                            } catch (e) {
+                                console.error('Fehler beim Parsen der Fehlermeldung:', text);
+                            }
+                        };
+                        reader.readAsText(blob);
+                    } else if (error.request) {
+                        console.error('Keine Antwort vom Server erhalten:', error.request);
+                        statusElement.textContent = "Server nicht erreichbar";
+                    } else {
+                        console.error('Ein Fehler ist aufgetreten:', error.message);
+                        statusElement.textContent = "Heatmap anfordern fehlgeschlagen";
+                    }
+                });
+            //Todo: Ende Übergangslösung
+
         } catch (error) {
-            console.error('Error uploading file: ', error);
-            statusElement.textContent = "Test fehlgeschlagen";
+            if (error.response) {
+                console.error('Fehler:', error.response.data['message']);
+                console.error('Status:', error.response.status);
+                if (error.response.data['exception'] !== undefined) {
+                    console.error('Exception:', error.response.data['exception']);
+                }
+                statusElement.textContent = error.response.data['message'];
+            } else if (error.request) {
+                console.error('Keine Antwort vom Server erhalten:', error.request);
+                statusElement.textContent = "Server nicht erreichbar";
+            } else {
+                console.error('Ein Fehler ist aufgetreten:', error.message);
+                statusElement.textContent = "Test fehlgeschlagen";
+            }
         }
     };
 
@@ -250,6 +285,7 @@ function DropzoneTest ({ className1, className2, visitorId }) {
                     style={img}
                     // Revoke data uri after image is loaded
                     onLoad={() => { URL.revokeObjectURL(file.preview) }}
+                    alt="Preview"
                 />
             </div>
         </div>
@@ -257,7 +293,12 @@ function DropzoneTest ({ className1, className2, visitorId }) {
 
     return (
         <section className="container">
-            <Container {...getRootProps({className: 'dropzone', isFocused, isDragAccept, isDragReject})}>
+            <Container {...getRootProps({
+                className: 'dropzone',
+                $isFocused: isFocused,
+                $isDragAccept: isDragAccept,
+                $isDragReject: isDragReject
+            })}>
                 <input {...getInputProps()} />
                 {isDragActive ? (
                     <p>Datei hier droppen</p>

@@ -93,6 +93,22 @@ select {
   border-radius: 10px;
 }
 
+table {
+  width: 100%;
+  text-align: center;
+  color: #000000;
+  background-color: #AAAAAA;
+}
+
+table, td {
+  border: 1px solid #000000;
+  border-collapse: collapse;
+}
+
+td {
+  width: 20%;
+}
+
 @media (min-width: 0px) and (max-width: 599px){
 
   body {
