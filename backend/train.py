@@ -83,7 +83,7 @@ def start_training(path, epochs, batch_size, learn_rate, pretrained, model_save_
                   loss='binary_crossentropy',
                   metrics=['accuracy'])
 
-    model.fit(
+    history = model.fit(
         train_generator,
         steps_per_epoch=train_generator.samples // batch_size,
         epochs=epochs,
@@ -93,6 +93,8 @@ def start_training(path, epochs, batch_size, learn_rate, pretrained, model_save_
     )
 
     model.save(model_save_path)
+
+    return history.history
 
 
 def create_pretrained_fruits360_model(epochs, batch_size, learn_rate):

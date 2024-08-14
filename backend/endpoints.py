@@ -26,7 +26,7 @@ def test_endpoints():
     try:
         return jsonify({'message': 'Success'}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'message': str(e)}), 500
 
 
 @app.route('/uploadTrain', methods=['POST'])
@@ -36,12 +36,12 @@ def upload_train():
         visitor_id = request.form['visitorId']
 
         if 'files[]' not in request.files:
-            return jsonify({'error': 'No files part in the request'}), 400
+            return jsonify({'message': 'Keine Bilder vorhanden'}), 400
 
         files = request.files.getlist('files[]')
 
         if not files:
-            return jsonify({'error': 'No files provided'}), 400
+            return jsonify({'message': 'Keine Bilder vorhanden'}), 400
 
         path = os.path.join(visitor_id, app.config['UPLOAD_FOLDER'])
         path = os.path.join(path, class_name)
@@ -65,10 +65,10 @@ def upload_train():
                 filename = os.path.join(path, file.filename)
                 file.save(filename)
 
-        return jsonify({'message': 'Success'}), 200
+        return jsonify({'message': 'Upload abgeschlossen'}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'message': "Upload fehlgeschlagen", "exception": str(e)}), 500
 
 
 @app.route('/startTraining', methods=['POST'])
@@ -80,23 +80,27 @@ def train():
         pretrained = request.form['pretrained']
         visitor_id = request.form['visitorId']
 
-        if not (epochs or batch_size or learn_rate):
-            return jsonify({'error': 'No parameters provided'}), 400
+        if not (epochs or batch_size or learn_rate or pretrained):
+            return jsonify({'message': 'Keine Parameter übergeben'}), 400
 
-        start_training(path=visitor_id, epochs=epochs, batch_size=batch_size, learn_rate=learn_rate,
-                       pretrained=pretrained, model_save_path=os.path.join(visitor_id, 'model.h5'))
+        history = start_training(path=visitor_id, epochs=epochs, batch_size=batch_size, learn_rate=learn_rate,
+                                 pretrained=pretrained, model_save_path=os.path.join(visitor_id, 'model.h5'))
 
-        return jsonify({'message': 'Success'}), 200
+        for key in history:
+            history[key] = [round(value, 3) for value in history[key]]
+
+        return jsonify({'message': 'Training abgeschlossen', 'accuracy': history['accuracy'], 'loss': history['loss'],
+                        'val_accuracy': history['val_accuracy'], 'val_loss': history['val_loss']}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'message': "Training fehlgeschlagen", "exception": str(e)}), 500
 
 
 @app.route('/uploadTest', methods=['POST'])
 def test():
     try:
         if 'file' not in request.files:
-            return jsonify({'error': 'No file part in the request'}), 400
+            return jsonify({'message': 'Keine Datei vorhanden'}), 400
 
         file = request.files.get('file')
         test_model = request.form['testModel']
@@ -104,7 +108,7 @@ def test():
         visitor_id = request.form['visitorId']
 
         if not file:
-            return jsonify({'error': 'No file provided'}), 400
+            return jsonify({'message': 'Keine Datei vorhanden'}), 400
 
         if not os.path.exists(visitor_id):
             os.makedirs(visitor_id)
@@ -117,11 +121,11 @@ def test():
 
         predicted_class, probability = start_test(path=visitor_id, test_model=test_model, x_index=x_index)
 
-        return jsonify({'message': 'Success', 'prediction': str(predicted_class+1),
+        return jsonify({'message': 'Test abgeschlossen', 'prediction': str(predicted_class+1),
                         'probability': str(round(probability*100, 2))}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'message': "Test fehlgeschlagen", "exception": str(e)}), 500
 
 
 @app.route('/requestHeatmap', methods=['GET'])
@@ -136,12 +140,12 @@ def heatmap():
             image = "sign_x.jpg"
 
         if not os.path.exists(os.path.join(visitor_id, image)):
-            return jsonify({'error': 'No heatmap available'}), 400
+            return jsonify({'message': 'Keine Heatmap verfügbar'}), 400
 
         return send_file(os.path.join(visitor_id, image), mimetype='image/jpg')
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'message': 'Heatmap anfordern fehlgeschlagen', "exception": str(e)}), 500
 
 
 # if __name__ == '__main__':
