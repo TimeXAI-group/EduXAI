@@ -21,6 +21,7 @@ function App() {
     const [isTrainButtonDisabled, setIsTrainButtonDisabled] = useState(true);
     const [isResultsButtonDisabled, setIsResultsButtonDisabled] = useState(true);
     const [resultsButtonText, setResultsButtonText] = useState("Trainingsverlauf einblenden")
+    const [isOwnPretrainedModelDisabled, setIsOwnPretrainedModelDisabled] = useState(true);
 
     useEffect(() => {
         const initializeFingerprint = () => {
@@ -111,7 +112,7 @@ function App() {
     const startTraining = async () => {
         const resultsContainer = document.getElementById("resultsContainer");
         resultsContainer.style.display = "none";
-        setResultsButtonText("Ergebnisse einblenden")
+        setResultsButtonText("Trainingsverlauf einblenden")
         setIsResultsButtonDisabled(true)
 
         const statusElement = document.getElementById('trainStatus');
@@ -169,6 +170,7 @@ function App() {
                 resultsTableBody.appendChild(tr)
             }
             setIsResultsButtonDisabled(false)
+            setIsOwnPretrainedModelDisabled(false)
         } catch (error) {
             if (error.response) {
                 console.error('Fehler:', error.response.data['message']);
@@ -309,6 +311,7 @@ function App() {
                     <label>
                         <b>Vortrainiertes Modell: </b>
                         <select value={pretrained} onChange={e => setPretrained(e.target.value)}>
+                            <option disabled={isOwnPretrainedModelDisabled} value="own">Eigenes</option>
                             <option value="vgg16">VGG16</option>
                             <option value="fruits360">Fruits360</option>
                             <option value="vgg16fruits360">VGG16+Fruits360</option>

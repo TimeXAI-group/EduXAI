@@ -26,7 +26,8 @@ RUN npm install -g serve
 EXPOSE 3000
 
 # Starte die Anwendung
-CMD ["npm", "start"]
+# CMD ["npm", "start"]
+CMD ["serve", "-s", "build", "-l", "3000", "--ssl-cert", "./src/cert/xai_mnd_thm_de.pem", "--ssl-key", "./src/cert/xai-server-ssl-cert.key"]
 
 # HOW TO build and start container
 # docker run -it -d -p 443:4200 --name ecg-xai-evaluation-app-v1.0 ecg-xai-evaluation-app:v1.0
