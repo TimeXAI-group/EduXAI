@@ -83,6 +83,9 @@ def train():
         if not (epochs or batch_size or learn_rate or pretrained):
             return jsonify({'message': 'Keine Parameter übergeben'}), 400
 
+        if pretrained == "own" and not os.path.isfile(os.path.join(visitor_id, 'model.h5')):
+            return jsonify({'message': 'Kein trainiertes Modell vorhanden'}), 400
+
         history = start_training(path=visitor_id, epochs=epochs, batch_size=batch_size, learn_rate=learn_rate,
                                  pretrained=pretrained, model_save_path=os.path.join(visitor_id, 'model.h5'))
 

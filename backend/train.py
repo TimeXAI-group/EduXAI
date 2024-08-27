@@ -65,6 +65,8 @@ def start_training(path, epochs, batch_size, learn_rate, pretrained, model_save_
     else:
         if pretrained == "fruits360":
             model = load_model("fruits360_model.h5")
+        elif pretrained == "own":
+            model = load_model(model_save_path)
         else:
             model = load_model("vgg16fruits360_model.h5")
 
