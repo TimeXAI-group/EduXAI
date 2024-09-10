@@ -46,6 +46,21 @@ select {
   width: 100%;
 }
 
+.impressContainer {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+a {
+  color: #4a5c66;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline solid #4a5c66;
+}
+
 .arrowFlexboxContainer {
   display: flex;
   position: relative;
@@ -118,6 +133,10 @@ td {
 
   button {
     font-size: 5vw;
+  }
+
+  table {
+    font-size: 3.5vw;
   }
 
   .classNameInput {
@@ -286,6 +305,10 @@ td {
 
   button {
     font-size: 1.5vw;
+  }
+
+  table {
+    font-size: 1.2vw;
   }
 
   .classNameInput {

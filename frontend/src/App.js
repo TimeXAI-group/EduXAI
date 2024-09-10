@@ -153,7 +153,7 @@ function App() {
             for (let i=0;i<response.data['accuracy'].length;i++) {
                 const tr = document.createElement("tr")
                 const thEpoch = document.createElement("td")
-                thEpoch.textContent = i
+                thEpoch.textContent = String(i+1)
                 tr.appendChild(thEpoch)
                 const thAcc = document.createElement("td")
                 thAcc.textContent = response.data['accuracy'][i]
@@ -357,6 +357,9 @@ function App() {
                         </div>
                     </aside>
                 </div>
+            </div>
+            <div className="impressContainer">
+                <a href="https://www.thm.de/mnd/impressum">Impressum</a>
             </div>
         </div>
     );
