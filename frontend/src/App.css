@@ -167,6 +167,14 @@ td {
     flex-direction: column;
   }
 
+  .kiteContainer {
+    margin-bottom: 20px;
+  }
+
+  .impressContainer {
+    margin-top: 20px;
+  }
+
   .kite {
     width: 90%;
     padding-bottom: 25px;
@@ -249,6 +257,14 @@ td {
 
   .flexbox {
     flex-direction: column;
+  }
+
+  .kiteContainer {
+    margin-bottom: 20px;
+  }
+
+  .impressContainer {
+    margin-top: 30px;
   }
 
   .kite {
