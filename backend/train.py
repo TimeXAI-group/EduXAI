@@ -3,8 +3,8 @@ from keras.api._v2.keras.models import Sequential, load_model, Model
 from keras.api._v2.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 from keras.api._v2.keras.preprocessing.image import ImageDataGenerator
 from keras.api._v2.keras.optimizers import Adam
-from keras.api._v2.keras.applications import VGG16
 from keras.api._v2.keras.callbacks import EarlyStopping
+from keras.api._v2.keras.applications import VGG16
 
 
 def start_training(path, epochs, batch_size, learn_rate, pretrained, model_save_path):
@@ -53,7 +53,8 @@ def start_training(path, epochs, batch_size, learn_rate, pretrained, model_save_
             Dense(num_classes, activation='softmax')
         ])
     elif pretrained == "vgg16":
-        pretrained_model = VGG16(weights='imagenet', include_top=False, input_shape=input_shape)
+        # pretrained_model = VGG16(weights='imagenet', include_top=False, input_shape=input_shape)
+        pretrained_model = load_model("vgg16_model.h5")
         model = Sequential()
         for layer in pretrained_model.layers:
             layer.trainable = False
@@ -111,6 +112,7 @@ def create_pretrained_vgg16fruits360_model(epochs, batch_size, learn_rate):
 
 # if __name__ == '__main__':
 #     create_pretrained_fruits360_model(epochs=10, batch_size=8, learn_rate=0.001)
-    # create_pretrained_vgg16fruits360_model(epochs=50, batch_size=64, learn_rate=0.0001)
-    # start_training(path="069e0a7249f84f7f276bd051bbb3d687", epochs=3, batch_size=4, learn_rate=0.0001, pretrained="fruits360",
-    #                model_save_path=os.path.join("069e0a7249f84f7f276bd051bbb3d687", "model.h5"))
+#     create_pretrained_vgg16fruits360_model(epochs=50, batch_size=64, learn_rate=0.0001)
+#     start_training(path="069e0a7249f84f7f276bd051bbb3d687", epochs=3, batch_size=4, learn_rate=0.0001,
+#                    pretrained="fruits360",
+#                    model_save_path=os.path.join("069e0a7249f84f7f276bd051bbb3d687", "model.h5"))

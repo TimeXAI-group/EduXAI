@@ -91,7 +91,7 @@ def start_test(path, test_model, x_index):
 
     # plt.savefig(os.path.join(path, "sign_x.jpg"), bbox_inches='tight')
 
-    return index, score[0][index]
+    return int(index), float(score[0][index])
 
 
 # if __name__ == '__main__':

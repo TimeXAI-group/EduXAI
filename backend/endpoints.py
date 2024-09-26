@@ -1,6 +1,9 @@
 import shutil
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
+from celery import Celery
+from celery.result import AsyncResult
+from kombu import Queue
 import os
 from train import start_training
 from test import start_test
@@ -8,11 +11,57 @@ from PIL import Image
 import pillow_heif
 pillow_heif.register_heif_opener()
 
+
 app = Flask(__name__)
+app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
+app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
+celery = Celery(app.name, backend=app.config['CELERY_RESULT_BACKEND'], broker=app.config['CELERY_BROKER_URL'])
+celery.conf.broker_connection_retry_on_startup = True
+celery.conf.task_routes = {"run_test": {"queue": "test_queue"}, "run_train": {"queue": "train_queue"}}
+
+# celery.conf.update(app.config)
 CORS(app)
 
 TRAIN_FOLDER = './train_data'
 app.config['UPLOAD_FOLDER'] = TRAIN_FOLDER
+
+
+@app.route('/status', methods=['GET'])
+def get_task_status():
+    try:
+        task_id = request.args.get('task_id')
+
+        task = AsyncResult(task_id, app=celery)
+
+        if task.state == 'PENDING':
+            response = {
+                'state': task.state,
+                'message': 'Task has not started yet.'
+            }
+        elif task.state == 'STARTED':
+            response = {
+                'state': task.state,
+                'message': 'Task is currently running.'
+            }
+        elif task.state == 'SUCCESS':
+            response = {
+                'state': task.state,
+                'message': 'Task completed successfully!',
+                'result': task.result
+            }
+            return jsonify(response), 200
+        else:
+            response = {
+                'state': task.state,
+                'message': 'Task failed or encountered an error.',
+                'result': str(task.info)
+            }
+            return jsonify(response), 500
+
+        return jsonify(response), 202
+
+    except Exception as e:
+        return jsonify({'message': 'Task anfordern fehlgeschlagen', "exception": str(e)}), 500
 
 
 def convert_and_resize_image(image_file, size=(224, 224)):
@@ -86,17 +135,41 @@ def train():
         if pretrained == "own" and not os.path.isfile(os.path.join(visitor_id, 'model.h5')):
             return jsonify({'message': 'Kein trainiertes Modell vorhanden'}), 400
 
-        history = start_training(path=visitor_id, epochs=epochs, batch_size=batch_size, learn_rate=learn_rate,
-                                 pretrained=pretrained, model_save_path=os.path.join(visitor_id, 'model.h5'))
+        task = run_train.delay(path=visitor_id, epochs=epochs, batch_size=batch_size, learn_rate=learn_rate,
+                               pretrained=pretrained, model_save_path=os.path.join(visitor_id, 'model.h5'))
 
-        for key in history:
-            history[key] = [round(value, 3) for value in history[key]]
+        return jsonify({"message": "Training läuft ...", "task_id": task.id}), 202
 
-        return jsonify({'message': 'Training abgeschlossen', 'accuracy': history['accuracy'], 'loss': history['loss'],
-                        'val_accuracy': history['val_accuracy'], 'val_loss': history['val_loss']}), 200
+        # for key in history:
+        #     history[key] = [round(value, 3) for value in history[key]]
+        #
+        # return jsonify({'message': 'Training abgeschlossen', 'accuracy': history['accuracy'], 'loss': history['loss'],
+        #                 'val_accuracy': history['val_accuracy'], 'val_loss': history['val_loss']}), 200
 
     except Exception as e:
         return jsonify({'message': "Training fehlgeschlagen", "exception": str(e)}), 500
+
+
+@celery.task(name="run_train")
+def run_train(path, epochs, batch_size, learn_rate, pretrained, model_save_path):
+
+    history = start_training(path=path, epochs=epochs, batch_size=batch_size, learn_rate=learn_rate,
+                             pretrained=pretrained, model_save_path=model_save_path)
+
+    for key in history:
+        history[key] = [round(value, 3) for value in history[key]]
+
+    return {'message': 'Training abgeschlossen', 'accuracy': history['accuracy'], 'loss': history['loss'],
+            'val_accuracy': history['val_accuracy'], 'val_loss': history['val_loss']}
+
+
+@celery.task(name="run_test")
+def run_test(path, test_model, x_index):
+
+    predicted_class, probability = start_test(path=path, test_model=test_model, x_index=x_index)
+
+    return {'message': 'Test abgeschlossen', 'prediction': str(predicted_class+1),
+            'probability': str(round(probability*100, 2))}
 
 
 @app.route('/uploadTest', methods=['POST'])
@@ -122,10 +195,9 @@ def test():
         else:
             file.save(os.path.join(visitor_id, "test.jpg"))
 
-        predicted_class, probability = start_test(path=visitor_id, test_model=test_model, x_index=x_index)
+        task = run_test.delay(path=visitor_id, test_model=test_model, x_index=x_index)
 
-        return jsonify({'message': 'Test abgeschlossen', 'prediction': str(predicted_class+1),
-                        'probability': str(round(probability*100, 2))}), 200
+        return jsonify({"message": "Test läuft ...", "task_id": task.id}), 202
 
     except Exception as e:
         return jsonify({'message': "Test fehlgeschlagen", "exception": str(e)}), 500
@@ -152,6 +224,4 @@ def heatmap():
 
 
 # if __name__ == '__main__':
-#     app.run(host="0.0.0.0", port=5000,
-#             ssl_context=("./cert/xai_mnd_thm_de.pem", "./cert/xai-server-ssl-cert.key")
-#             )
+#     app.run(host="0.0.0.0", port=5000)
