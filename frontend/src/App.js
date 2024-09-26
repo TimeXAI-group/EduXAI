@@ -116,8 +116,9 @@ function App() {
         setIsResultsButtonDisabled(true)
 
         const statusElement = document.getElementById('trainStatus');
-        statusElement.style.display = "block";
-        setTrainStatus("Training läuft ...");
+        // statusElement.style.display = "block";
+        // setTrainStatus("Training läuft ...");
+        setTrainButtonState(true)
         const formData = new FormData();
         formData.append("epochs", epochs)
         formData.append("batchSize", batchSize)
@@ -126,51 +127,93 @@ function App() {
         formData.append('visitorId', visitorId);
 
         try {
-            const response = await axios.post('https://xai.mnd.thm.de:3000/startTraining', formData, {
+            const response = await axios.post('http://localhost:5000/startTraining', formData, {
             });
             console.log(response.data);
             setTrainStatus(response.data['message']);
+            statusElement.style.display = "block";
 
-            const resultsTableBody = document.getElementById("resultsTableBody");
-            resultsTableBody.innerHTML = ""
-            const tr = document.createElement("tr")
-            const thEpoch = document.createElement("td")
-            thEpoch.textContent = "Epoche"
-            tr.appendChild(thEpoch)
-            const thAcc = document.createElement("td")
-            thAcc.textContent = "Acc"
-            tr.appendChild(thAcc)
-            const thLoss = document.createElement("td")
-            thLoss.textContent = "Loss"
-            tr.appendChild(thLoss)
-            const thValAcc = document.createElement("td")
-            thValAcc.textContent = "ValAcc"
-            tr.appendChild(thValAcc)
-            const thValLoss = document.createElement("td")
-            thValLoss.textContent = "ValLoss"
-            tr.appendChild(thValLoss)
-            resultsTableBody.appendChild(tr)
-            for (let i=0;i<response.data['accuracy'].length;i++) {
-                const tr = document.createElement("tr")
-                const thEpoch = document.createElement("td")
-                thEpoch.textContent = String(i+1)
-                tr.appendChild(thEpoch)
-                const thAcc = document.createElement("td")
-                thAcc.textContent = response.data['accuracy'][i]
-                tr.appendChild(thAcc)
-                const thLoss = document.createElement("td")
-                thLoss.textContent = response.data['loss'][i]
-                tr.appendChild(thLoss)
-                const thValAcc = document.createElement("td")
-                thValAcc.textContent = response.data['val_accuracy'][i]
-                tr.appendChild(thValAcc)
-                const thValLoss = document.createElement("td")
-                thValLoss.textContent = response.data['val_loss'][i]
-                tr.appendChild(thValLoss)
-                resultsTableBody.appendChild(tr)
-            }
-            setIsResultsButtonDisabled(false)
-            setIsOwnPretrainedModelDisabled(false)
+            let attempt = 0
+
+            const interval = setInterval(() => {
+                axios.get('http://localhost:5000/status', {
+                    params: {
+                        task_id: response.data["task_id"]
+                    }
+                })
+                    .then(response => {
+                        const taskStatus = response.data.state;
+                        const taskMessage = response.data.message;
+
+                        if (attempt >= 60) {
+                            clearInterval(interval);
+                            console.log(response.data)
+                            setTrainStatus("Training fehlgeschlagen")
+                            setTrainButtonState(false)
+                        } else if (taskStatus === 'SUCCESS') {
+                            clearInterval(interval);
+                            console.log(response.data.result)
+
+                            setTrainStatus(response.data.result['message']);
+
+                            const resultsTableBody = document.getElementById("resultsTableBody");
+                            resultsTableBody.innerHTML = ""
+                            const tr = document.createElement("tr")
+                            const thEpoch = document.createElement("td")
+                            thEpoch.textContent = "Epoche"
+                            tr.appendChild(thEpoch)
+                            const thAcc = document.createElement("td")
+                            thAcc.textContent = "Acc"
+                            tr.appendChild(thAcc)
+                            const thLoss = document.createElement("td")
+                            thLoss.textContent = "Loss"
+                            tr.appendChild(thLoss)
+                            const thValAcc = document.createElement("td")
+                            thValAcc.textContent = "ValAcc"
+                            tr.appendChild(thValAcc)
+                            const thValLoss = document.createElement("td")
+                            thValLoss.textContent = "ValLoss"
+                            tr.appendChild(thValLoss)
+                            resultsTableBody.appendChild(tr)
+                            for (let i=0;i<response.data.result['accuracy'].length;i++) {
+                                const tr = document.createElement("tr")
+                                const thEpoch = document.createElement("td")
+                                thEpoch.textContent = String(i+1)
+                                tr.appendChild(thEpoch)
+                                const thAcc = document.createElement("td")
+                                thAcc.textContent = response.data.result['accuracy'][i]
+                                tr.appendChild(thAcc)
+                                const thLoss = document.createElement("td")
+                                thLoss.textContent = response.data.result['loss'][i]
+                                tr.appendChild(thLoss)
+                                const thValAcc = document.createElement("td")
+                                thValAcc.textContent = response.data.result['val_accuracy'][i]
+                                tr.appendChild(thValAcc)
+                                const thValLoss = document.createElement("td")
+                                thValLoss.textContent = response.data.result['val_loss'][i]
+                                tr.appendChild(thValLoss)
+                                resultsTableBody.appendChild(tr)
+                            }
+                            setIsResultsButtonDisabled(false)
+                            setIsOwnPretrainedModelDisabled(false)
+                            setTrainButtonState(false)
+                        } else if(taskStatus === 'FAILURE') {
+                            clearInterval(interval);
+                            console.log(response.data)
+                            setTrainStatus(response.data.result['message'])
+                            setTrainButtonState(false)
+                        }
+                        attempt++;
+
+                        console.log('Task Status:', taskStatus);
+                        console.log('Task Info:', taskMessage);
+                    })
+                    .catch(error => {
+                        clearInterval(interval);  // Stoppt das Polling im Fehlerfall
+                        console.error('Fehler beim Abrufen des Task-Status:', error);
+                    });
+            }, 2000);  // Alle 2 Sekunden
+
         } catch (error) {
             if (error.response) {
                 console.error('Fehler:', error.response.data['message']);
@@ -293,9 +336,9 @@ function App() {
                     <label>
                         <b>Batch-Size: </b>
                         <select value={batchSize} onChange={e => setBatchSize(e.target.value)}>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
                             <option value="4">4</option>
-                            <option value="8">8</option>
-                            <option value="16">16</option>
                             {/*<option value="32">32</option>*/}
                             {/*<option value="64">64</option>*/}
                         </select>

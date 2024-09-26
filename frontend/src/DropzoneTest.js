@@ -80,12 +80,17 @@ function DropzoneTest ({ className1, className2, visitorId }) {
     const [xIndex, setXIndex] = useState('predicted');
     const [files, setFiles] = useState([]);
     const [previewFiles, setPreviewFiles] = useState([]);
+    const [isTestDisabled, setIsTestDisabled] = useState(false);
 
+    const setTestState = (value) => {
+        setIsTestDisabled(value);
+    };
 
     const handleChange = (value) => {
-        const statusElement = document.getElementById('testStatus');
-        statusElement.textContent = "Test läuft ...";
-        statusElement.style.display = "block";
+        // const statusElement = document.getElementById('testStatus');
+        // statusElement.textContent = "Test läuft ...";
+        // statusElement.style.display = "block";
+        setIsTestDisabled(true);
         setXIndex(value);
         startTest(files[0], value);
     };
@@ -98,6 +103,7 @@ function DropzoneTest ({ className1, className2, visitorId }) {
         isDragReject,
         isDragActive
     } = useDropzone({
+        disabled: isTestDisabled,
         multiple: false,
         accept: {
             'image/heic': ['.heic'],
@@ -105,10 +111,10 @@ function DropzoneTest ({ className1, className2, visitorId }) {
             'image/jpg': [".jpg", '.jpeg']
         },
         onDrop: async acceptedFiles => {
-
+            setTestState(true)
             const statusElement = document.getElementById('testStatus');
-            statusElement.textContent = "Test läuft ...";
-            statusElement.style.display = "block";
+            // statusElement.textContent = "Test läuft ...";
+            // statusElement.style.display = "block";
 
             const processFile = async (file) => {
 
@@ -179,6 +185,8 @@ function DropzoneTest ({ className1, className2, visitorId }) {
             }
             else {
                 statusElement.textContent = "Ungültiges Bild";
+                statusElement.style.display = "block";
+                setTestState(false)
             }
 
             //Option 0
@@ -191,6 +199,10 @@ function DropzoneTest ({ className1, className2, visitorId }) {
     });
 
     const startTest = async (acceptedFile, index) => {
+        const imgContainerElement = document.getElementById('heatmapContainer');
+        const imgElement = document.getElementById('heatmap');
+        imgElement.src = "none"
+        imgContainerElement.style.display = "none";
         const statusElement = document.getElementById('testStatus');
         // statusElement.textContent = "Test läuft ...";
         // statusElement.style.display = "block";
@@ -201,63 +213,105 @@ function DropzoneTest ({ className1, className2, visitorId }) {
         formData.append("visitorId", visitorId)
 
         try {
-            const response = await axios.post('https://xai.mnd.thm.de:3000/uploadTest', formData, {
+            const response = await axios.post('http://localhost:5000/uploadTest', formData, {
             });
             console.log(response.data);
             statusElement.textContent = response.data['message'];
-            if (response.data["prediction"] === "1") {
-                setPredictedClass(document.getElementById('className1').value)
-            }
-            else {
-                setPredictedClass(document.getElementById('className2').value)
-            }
-            setProbability(response.data["probability"])
+            statusElement.style.display = "block";
 
-            //Todo: Start Übergangslösung
-            axios.get('https://xai.mnd.thm.de:3000/requestHeatmap', {
-                params: {
-                    method: 'gradCam',
-                    visitorId: visitorId
-                },
-                responseType: 'blob'
-            })
-                .then(response => {
-                    const imgUrl = URL.createObjectURL(response.data);
-                    const imgElement = document.getElementById('heatmap');
-                    imgElement.src = imgUrl;
-                    const imgContainerElement = document.getElementById('heatmapContainer');
-                    imgContainerElement.style.display = "flex";
-                    // const imgButtonElement = document.getElementById('heatmapButton');
-                    // imgButtonElement.style.margin = "10px 0 10px 0"
-                })
-                .catch(error => {
-                    if (error.response && error.response.data) {
-                        const blob = error.response.data;
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                            const text = reader.result;
-                            try {
-                                const json = JSON.parse(text);
-                                console.error('Fehler:', json['message']);
-                                console.error('Status:', error.response.status);
-                                if (json['exception'] !== undefined) {
-                                    console.error('Exception:', json['exception']);
-                                }
-                                statusElement.textContent = json['message'];
-                            } catch (e) {
-                                console.error('Fehler beim Parsen der Fehlermeldung:', text);
-                            }
-                        };
-                        reader.readAsText(blob);
-                    } else if (error.request) {
-                        console.error('Keine Antwort vom Server erhalten:', error.request);
-                        statusElement.textContent = "Server nicht erreichbar";
-                    } else {
-                        console.error('Ein Fehler ist aufgetreten:', error.message);
-                        statusElement.textContent = "Heatmap anfordern fehlgeschlagen";
+            let attempt = 0
+
+            const interval = setInterval(() => {
+
+                axios.get('http://localhost:5000/status', {
+                    params: {
+                        task_id: response.data["task_id"]
                     }
-                });
-            //Todo: Ende Übergangslösung
+                })
+                    .then(response => {
+                        const taskStatus = response.data.state;
+                        const taskMessage = response.data.message;
+
+                        if (attempt >= 60) {
+                            clearInterval(interval);
+                            console.log(response.data)
+                            statusElement.textContent = "Test fehlgeschlagen";
+                            setTestState(false)
+                        } else if (taskStatus === 'SUCCESS') {
+                            clearInterval(interval);
+                            console.log(response.data.result)
+
+                            statusElement.textContent = response.data.result['message'];
+
+                            if (response.data.result["prediction"] === "1") {
+                                setPredictedClass(document.getElementById('className1').value)
+                            }
+                            else {
+                                setPredictedClass(document.getElementById('className2').value)
+                            }
+                            setProbability(response.data.result["probability"])
+
+                            //Todo: Start Übergangslösung
+                            axios.get('http://localhost:5000/requestHeatmap', {
+                                params: {
+                                    method: 'gradCam',
+                                    visitorId: visitorId
+                                },
+                                responseType: 'blob'
+                            })
+                                .then(response => {
+                                    imgElement.src = URL.createObjectURL(response.data);
+                                    imgContainerElement.style.display = "flex";
+                                    // const imgButtonElement = document.getElementById('heatmapButton');
+                                    // imgButtonElement.style.margin = "10px 0 10px 0"
+                                })
+                                .catch(error => {
+                                    if (error.response && error.response.data) {
+                                        const blob = error.response.data;
+                                        const reader = new FileReader();
+                                        reader.onload = () => {
+                                            const text = reader.result;
+                                            try {
+                                                const json = JSON.parse(text);
+                                                console.error('Fehler:', json['message']);
+                                                console.error('Status:', error.response.status);
+                                                if (json['exception'] !== undefined) {
+                                                    console.error('Exception:', json['exception']);
+                                                }
+                                                statusElement.textContent = json['message'];
+                                            } catch (e) {
+                                                console.error('Fehler beim Parsen der Fehlermeldung:', text);
+                                            }
+                                        };
+                                        reader.readAsText(blob);
+                                    } else if (error.request) {
+                                        console.error('Keine Antwort vom Server erhalten:', error.request);
+                                        statusElement.textContent = "Server nicht erreichbar";
+                                    } else {
+                                        console.error('Ein Fehler ist aufgetreten:', error.message);
+                                        statusElement.textContent = "Heatmap anfordern fehlgeschlagen";
+                                    }
+                                });
+                            //Todo: Ende Übergangslösung
+                            setTestState(false)
+                        } else if (taskStatus === 'FAILURE') {
+                            clearInterval(interval);
+                            console.log(response.data)
+                            statusElement.textContent = response.data.result['message'];
+                            setTestState(false)
+                        }
+
+                        attempt++;
+
+                        console.log('Task Status:', taskStatus);
+                        console.log('Task Info:', taskMessage);
+                    })
+                    .catch(error => {
+                        clearInterval(interval);  // Stoppt das Polling im Fehlerfall
+                        console.error('Fehler beim Abrufen des Task-Status:', error);
+                        setTestState(false)
+                    });
+            }, 2000);  // Alle 2 Sekunden
 
         } catch (error) {
             if (error.response) {
@@ -274,6 +328,7 @@ function DropzoneTest ({ className1, className2, visitorId }) {
                 console.error('Ein Fehler ist aufgetreten:', error.message);
                 statusElement.textContent = "Test fehlgeschlagen";
             }
+            setTestState(false)
         }
     };
 
@@ -320,7 +375,7 @@ function DropzoneTest ({ className1, className2, visitorId }) {
             {/*<br></br>*/}
             <label>
                 <b>Erklärbarkeitsindex: </b>
-                <select style={select} value={xIndex} onChange={e => handleChange(e.target.value)}>
+                <select disabled={isTestDisabled} style={select} value={xIndex} onChange={e => handleChange(e.target.value)}>
                     <option value="predicted">Standard</option>
                     <option value="0">{className1}</option>
                     <option value="1">{className2}</option>

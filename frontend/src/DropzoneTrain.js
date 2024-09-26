@@ -60,6 +60,12 @@ const img = {
 const DropzoneTrain = ({ setTrainButtonState, className, visitorId }) => {
     const asideID = "aside"+className.slice(-1);
     const [files, setFiles] = useState([]);
+    const [isUploadTrainDisabled, setIsUploadTrainDisabled] = useState(false);
+
+    const setUploadTrainState = (value) => {
+        setIsUploadTrainDisabled(value);
+    };
+
     const {
         getRootProps,
         getInputProps,
@@ -68,12 +74,14 @@ const DropzoneTrain = ({ setTrainButtonState, className, visitorId }) => {
         isDragReject,
         isDragActive
     } = useDropzone({
+        disabled: isUploadTrainDisabled,
         accept: {
             'image/heic': ['.heic'],
             'image/png': ['.png'],
             'image/jpg': [".jpg", '.jpeg']
         },
         onDrop: async acceptedFiles => {
+            setUploadTrainState(true)
 
             let statusElement;
             // let countOfFilesInOtherDropzone;
@@ -92,6 +100,7 @@ const DropzoneTrain = ({ setTrainButtonState, className, visitorId }) => {
                 statusElement.textContent = "Mindestens 10 Dateien hochladen";
                 statusElement.style.display = "block";
                 setTrainButtonState(true)
+                setUploadTrainState(false)
                 return;
             }
 
@@ -121,7 +130,7 @@ const DropzoneTrain = ({ setTrainButtonState, className, visitorId }) => {
                                     if (resizedBlob) {
                                         resolve(resizedBlob);
                                     } else {
-                                        reject(new Error('Canvas toBlob failed'));
+                                        reject(new Error('Canvas to Blob failed'));
                                     }
                                 }, 'image/jpeg', 1);
                             };
@@ -197,7 +206,7 @@ const DropzoneTrain = ({ setTrainButtonState, className, visitorId }) => {
         });
 
         try {
-            const response = await axios.post('https://xai.mnd.thm.de:3000/uploadTrain', formData, {
+            const response = await axios.post('http://localhost:5000/uploadTrain', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
@@ -224,6 +233,7 @@ const DropzoneTrain = ({ setTrainButtonState, className, visitorId }) => {
             }
             setTrainButtonState(true)
         }
+        setUploadTrainState(false)
     };
 
     // useEffect(() => {
