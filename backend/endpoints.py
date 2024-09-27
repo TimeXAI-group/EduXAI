@@ -3,7 +3,6 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from celery import Celery
 from celery.result import AsyncResult
-from kombu import Queue
 import os
 from train import start_training
 from test import start_test
@@ -13,17 +12,15 @@ pillow_heif.register_heif_opener()
 
 
 app = Flask(__name__)
-app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
-app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
-celery = Celery(app.name, backend=app.config['CELERY_RESULT_BACKEND'], broker=app.config['CELERY_BROKER_URL'])
+# app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
+# app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
+celery = Celery(app.name, backend='redis://localhost:6379/0', broker='redis://localhost:6379/0')
 celery.conf.broker_connection_retry_on_startup = True
 celery.conf.task_routes = {"run_test": {"queue": "test_queue"}, "run_train": {"queue": "train_queue"}}
-
+celery.conf.worker_prefetch_multiplier = 1
 # celery.conf.update(app.config)
 CORS(app)
-
-TRAIN_FOLDER = './train_data'
-app.config['UPLOAD_FOLDER'] = TRAIN_FOLDER
+app.config['UPLOAD_FOLDER'] = './train_data'
 
 
 @app.route('/status', methods=['GET'])
