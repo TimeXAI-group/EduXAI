@@ -57,14 +57,10 @@ const img = {
 //     marginTop: 10,
 // };
 
-const DropzoneTrain = ({ setTrainButtonState, className, visitorId }) => {
+const DropzoneTrain = ({ setIsTrainButtonDisabled, className, visitorId }) => {
     const asideID = "aside"+className.slice(-1);
     const [files, setFiles] = useState([]);
     const [isUploadTrainDisabled, setIsUploadTrainDisabled] = useState(false);
-
-    const setUploadTrainState = (value) => {
-        setIsUploadTrainDisabled(value);
-    };
 
     const {
         getRootProps,
@@ -81,7 +77,8 @@ const DropzoneTrain = ({ setTrainButtonState, className, visitorId }) => {
             'image/jpg': [".jpg", '.jpeg']
         },
         onDrop: async acceptedFiles => {
-            setUploadTrainState(true)
+            setIsUploadTrainDisabled(true)
+            setIsTrainButtonDisabled(true)
 
             let statusElement;
             // let countOfFilesInOtherDropzone;
@@ -94,19 +91,15 @@ const DropzoneTrain = ({ setTrainButtonState, className, visitorId }) => {
                 // countOfFilesInOtherDropzone = document.getElementById("aside1").childElementCount;
             }
 
-            if (acceptedFiles.length < 10) {
-                setFiles([])
-
-                statusElement.textContent = "Mindestens 10 Dateien hochladen";
-                statusElement.style.display = "block";
-                setTrainButtonState(true)
-                setUploadTrainState(false)
-                return;
-            }
-
             statusElement.textContent = "Upload läuft ...";
             statusElement.style.display = "block";
-            setTrainButtonState(true)
+
+            if (acceptedFiles.length < 10) {
+                setFiles([])
+                statusElement.textContent = "Mindestens 10 Dateien hochladen";
+                setIsUploadTrainDisabled(false)
+                return;
+            }
 
             const processFile = async (file) => {
 
@@ -178,9 +171,16 @@ const DropzoneTrain = ({ setTrainButtonState, className, visitorId }) => {
                     preview: URL.createObjectURL(pngFile)
                 });
             }
-            setFiles(validNotHEICImages.concat(previewHEICImages));
-            
-            await handleUpload(validNotHEICImages.concat(validHEICImages));
+            const previewFiles = validNotHEICImages.concat(previewHEICImages);
+            const uploadFiles = validNotHEICImages.concat(validHEICImages);
+            if (previewFiles.length === uploadFiles.length && previewFiles.length >= 10) {
+                setFiles(previewFiles);
+                await handleUpload(uploadFiles);
+            }
+            else {
+                statusElement.textContent = "Weniger als 10 gültige Bilder";
+                setIsUploadTrainDisabled(false)
+            }
         }
     });
 
@@ -206,7 +206,7 @@ const DropzoneTrain = ({ setTrainButtonState, className, visitorId }) => {
         });
 
         try {
-            const response = await axios.post('http://localhost:5000/uploadTrain', formData, {
+            const response = await axios.post('https://xai.mnd.thm.de:3000/uploadTrain', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
@@ -214,7 +214,7 @@ const DropzoneTrain = ({ setTrainButtonState, className, visitorId }) => {
             console.log(response.data);
             statusElement.textContent = response.data['message'];
             if (otherStatusElement.textContent === response.data['message']) {
-                setTrainButtonState(false);
+                setIsTrainButtonDisabled(false);
             }
         } catch (error) {
             if (error.response) {
@@ -231,9 +231,9 @@ const DropzoneTrain = ({ setTrainButtonState, className, visitorId }) => {
                 console.error('Ein Fehler ist aufgetreten:', error.message);
                 statusElement.textContent = "Upload fehlgeschlagen";
             }
-            setTrainButtonState(true)
+            setIsTrainButtonDisabled(true)
         }
-        setUploadTrainState(false)
+        setIsUploadTrainDisabled(false)
     };
 
     // useEffect(() => {

@@ -52,10 +52,6 @@ function App() {
         };
     }, []);
 
-    const setTrainButtonState = (value) => {
-        setIsTrainButtonDisabled(value);
-    };
-
     // const button = {
     //     margin: "10px 0 0 0"
     // }
@@ -114,11 +110,10 @@ function App() {
         resultsContainer.style.display = "none";
         setResultsButtonText("Trainingsverlauf einblenden")
         setIsResultsButtonDisabled(true)
-
+        setIsTrainButtonDisabled(true)
         const statusElement = document.getElementById('trainStatus');
         // statusElement.style.display = "block";
         // setTrainStatus("Training läuft ...");
-        setTrainButtonState(true)
         const formData = new FormData();
         formData.append("epochs", epochs)
         formData.append("batchSize", batchSize)
@@ -127,7 +122,7 @@ function App() {
         formData.append('visitorId', visitorId);
 
         try {
-            const response = await axios.post('http://localhost:5000/startTraining', formData, {
+            const response = await axios.post('https://xai.mnd.thm.de:3000/startTraining', formData, {
             });
             console.log(response.data);
             setTrainStatus(response.data['message']);
@@ -136,7 +131,7 @@ function App() {
             let attempt = 0
 
             const interval = setInterval(() => {
-                axios.get('http://localhost:5000/status', {
+                axios.get('https://xai.mnd.thm.de:3000/status', {
                     params: {
                         task_id: response.data["task_id"]
                     }
@@ -149,7 +144,7 @@ function App() {
                             clearInterval(interval);
                             console.log(response.data)
                             setTrainStatus("Training fehlgeschlagen")
-                            setTrainButtonState(false)
+                            setIsTrainButtonDisabled(false)
                         } else if (taskStatus === 'SUCCESS') {
                             clearInterval(interval);
                             console.log(response.data.result)
@@ -196,12 +191,12 @@ function App() {
                             }
                             setIsResultsButtonDisabled(false)
                             setIsOwnPretrainedModelDisabled(false)
-                            setTrainButtonState(false)
+                            setIsTrainButtonDisabled(false)
                         } else if(taskStatus === 'FAILURE') {
                             clearInterval(interval);
                             console.log(response.data)
-                            setTrainStatus(response.data.result['message'])
-                            setTrainButtonState(false)
+                            setTrainStatus("Training fehlgeschlagen")
+                            setIsTrainButtonDisabled(false)
                         }
                         attempt++;
 
@@ -211,6 +206,8 @@ function App() {
                     .catch(error => {
                         clearInterval(interval);  // Stoppt das Polling im Fehlerfall
                         console.error('Fehler beim Abrufen des Task-Status:', error);
+                        setTrainStatus("Training fehlgeschlagen")
+                        setIsTrainButtonDisabled(false)
                     });
             }, 2000);  // Alle 2 Sekunden
 
@@ -229,6 +226,7 @@ function App() {
                 console.error('Ein Fehler ist aufgetreten:', error.message);
                 setTrainStatus("Training fehlgeschlagen");
             }
+            setIsTrainButtonDisabled(false)
         }
     };
 
@@ -296,7 +294,7 @@ function App() {
                                 onChange={e => setClassName1(e.target.value)} // Event-Handler für Änderungen im Input-Feld
                             />
                         </label>
-                        <DropzoneTrain setTrainButtonState={setTrainButtonState} className="class1" visitorId={visitorId} />
+                        <DropzoneTrain setIsTrainButtonDisabled={setIsTrainButtonDisabled} className="class1" visitorId={visitorId} />
                         <div className="status" id="uploadStatus1" style={status}></div>
                     </div>
                 </div>
@@ -311,7 +309,7 @@ function App() {
                                 onChange={e => setClassName2(e.target.value)} // Event-Handler für Änderungen im Input-Feld
                             />
                         </label>
-                        <DropzoneTrain setTrainButtonState={setTrainButtonState} className="class2" visitorId={visitorId}/>
+                        <DropzoneTrain setIsTrainButtonDisabled={setIsTrainButtonDisabled} className="class2" visitorId={visitorId}/>
                         <div className="status" id="uploadStatus2" style={status}></div>
                     </div>
                 </div>
