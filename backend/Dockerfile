@@ -37,22 +37,15 @@ RUN echo 'export PYTHONPATH='..:.:../..'' >> ~/.bashrc
 # Expose the port your application runs on (adjust as needed)
 EXPOSE 5000
 #EXPOSE 5555
-# Specify the command to run on container start
-# Adjust 'app.py' to the entry point of your application
+
 #CMD ["gunicorn", "--certfile=./cert/xai_mnd_thm_de.pem", "--keyfile=./cert/xai-server-ssl-cert.key", "--bind", "0.0.0.0:5000", "endpoints:app"]
+
 CMD service redis-server start && \
-    celery -A endpoints.celery worker --concurrency=$(cat /proc/cpuinfo | grep processor | wc -l) --loglevel=info & \
-    # --uid=celeryuser
-    gunicorn --workers $(cat /proc/cpuinfo | grep processor | wc -l) --bind 0.0.0.0:5000 endpoints:app
-#    gunicorn --certfile=./cert/xai_mnd_thm_de.pem --keyfile=./cert/xai-server-ssl-cert.key --bind 0.0.0.0:5000 endpoints:app
-CMD service redis-server start && \
-    # Start a Celery worker for methode1 on one core
     celery -A endpoints.celery worker -n celery_worker_1 -Q test_queue --concurrency=1 --loglevel=info & \
-    # Start the remaining Celery workers for methode2 based on the available cores
+#    --uid=celeryuser
     CORES=$(cat /proc/cpuinfo | grep processor | wc -l) && \
     for i in $(seq 2 $CORES); do \
         celery -A endpoints.celery worker -n celery_worker_$i -Q train_queue --concurrency=1 --loglevel=info & \
     done && \
 #    celery -A endpoints.celery flower & \
-    # Start Gunicorn with a number of workers equal to the number of CPU cores
-    gunicorn --workers $(cat /proc/cpuinfo | grep processor | wc -l) --bind 0.0.0.0:5000 endpoints:app
+    gunicorn --certfile=./cert/xai_mnd_thm_de.pem --keyfile=./cert/xai-server-ssl-cert.key --workers $(cat /proc/cpuinfo | grep processor | wc -l) --bind 0.0.0.0:5000 endpoints:app
