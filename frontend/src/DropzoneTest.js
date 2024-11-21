@@ -315,7 +315,7 @@ function DropzoneTest ({ className1, className2, visitorId }) {
                         statusElement.textContent =  "Test fehlgeschlagen";
                         setIsTestDisabled(false)
                     });
-            }, 2000);  // Alle 2 Sekunden
+            }, 200);  // Alle 0,2 Sekunden
 
         } catch (error) {
             if (error.response) {

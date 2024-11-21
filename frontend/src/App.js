@@ -209,7 +209,7 @@ function App() {
                         setTrainStatus("Training fehlgeschlagen")
                         setIsTrainButtonDisabled(false)
                     });
-            }, 2000);  // Alle 2 Sekunden
+            }, 500);  // Alle 0,5 Sekunden
 
         } catch (error) {
             if (error.response) {
