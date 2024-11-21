@@ -140,7 +140,7 @@ function App() {
                         const taskStatus = response.data.state;
                         const taskMessage = response.data.message;
 
-                        if (attempt >= 60) {
+                        if (attempt >= 240) { // try not longer than 2 min
                             clearInterval(interval);
                             console.log(response.data)
                             setTrainStatus("Training fehlgeschlagen")
