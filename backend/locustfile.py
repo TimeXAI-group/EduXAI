@@ -43,7 +43,7 @@ class WebsiteUser(HttpUser):
             task_id = response.json()["task_id"]
 
             while True:
-                time.sleep(2)
+                time.sleep(0.5)
                 response = self.client.get(f"/status?task_id={task_id}")
                 # print(response.status_code)
                 state = response.json()["state"]
@@ -70,7 +70,7 @@ class WebsiteUser(HttpUser):
             task_id = response.json()["task_id"]
 
             while True:
-                time.sleep(2)
+                time.sleep(0.2)
                 response = self.client.get(f"/status?task_id={task_id}")
                 # print(response.status_code)
                 state = response.json()["state"]
