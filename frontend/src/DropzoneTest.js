@@ -235,7 +235,7 @@ function DropzoneTest ({ className1, className2, visitorId }) {
                         const taskStatus = response.data.state;
                         const taskMessage = response.data.message;
 
-                        if (attempt >= 60) {
+                        if (attempt >= 300) { //try not longer than 1 min
                             clearInterval(interval);
                             console.log(response.data)
                             statusElement.textContent = "Test fehlgeschlagen";
