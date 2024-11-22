@@ -1,11 +1,10 @@
 import './App.css';
 import DropzoneTrain from "./DropzoneTrain";
 import DropzoneTest from "./DropzoneTest";
-import React, { useState, useEffect } from 'react';
+import React, {useState} from 'react';
 import axios from "axios";
 import arrow from "./arrow.svg"
 import logo from "./EduXAI.png"
-import FingerprintJS from '@fingerprintjs/fingerprintjs'
 
 
 function App() {
@@ -16,41 +15,48 @@ function App() {
     const [batchSize, setBatchSize] = useState('4')
     const [learnRate, setLearnRate] = useState('0.0001')
     const [pretrained, setPretrained] = useState('vgg16')
-    const [trainStatus, setTrainStatus] = useState('')
     // const [method, setMethod] = useState('gradCam')
     const [isTrainButtonDisabled, setIsTrainButtonDisabled] = useState(true);
     const [isResultsButtonDisabled, setIsResultsButtonDisabled] = useState(true);
     const [resultsButtonText, setResultsButtonText] = useState("Trainingsverlauf einblenden")
     const [isOwnPretrainedModelDisabled, setIsOwnPretrainedModelDisabled] = useState(true);
+    const [statusElementText1, setStatusElementText1] = useState('')
+    const [statusElementDisplay1, setStatusElementDisplay1] = useState('none')
+    const [statusElementText2, setStatusElementText2] = useState('')
+    const [statusElementDisplay2, setStatusElementDisplay2] = useState('none')
+    const [statusElementTextTrain, setStatusElementTextTrain] = useState('')
+    const [statusElementDisplayTrain, setStatusElementDisplayTrain] = useState('none')
+    const [statusElementTextTest, setStatusElementTextTest] = useState('')
+    const [statusElementDisplayTest, setStatusElementDisplayTest] = useState('none')
 
-    useEffect(() => {
-        const initializeFingerprint = () => {
-            FingerprintJS.load()
-                .then(fp => fp.get())
-                .then(result => {
-                    setVisitorId(result.visitorId);
-                })
-                .catch(error => {
-                    console.error('Error getting visitorId:', error);
-                });
-            removeListeners();
-        }
-        const events = ['click', 'keydown', 'touchstart', 'scroll'];
-
-        const removeListeners = () => {
-            events.forEach(event => {
-                window.removeEventListener(event, initializeFingerprint);
-            });
-        };
-
-        events.forEach(event => {
-            window.addEventListener(event, initializeFingerprint, { once: true });
-        });
-
-        return () => {
-            removeListeners();
-        };
-    }, []);
+    // useEffect(() => {
+    //     const initializeFingerprint = () => {
+    //         FingerprintJS.load()
+    //             .then(fp => fp.get())
+    //             .then(result => {
+    //                 setVisitorId(result.visitorId);
+    //             })
+    //             .catch(error => {
+    //                 console.error('Error getting visitorId:', error);
+    //             });
+    //         removeListeners();
+    //     }
+    //     const events = ['click', 'keydown', 'touchstart', 'scroll'];
+    //
+    //     const removeListeners = () => {
+    //         events.forEach(event => {
+    //             window.removeEventListener(event, initializeFingerprint);
+    //         });
+    //     };
+    //
+    //     events.forEach(event => {
+    //         window.addEventListener(event, initializeFingerprint, { once: true });
+    //     });
+    //
+    //     return () => {
+    //         removeListeners();
+    //     };
+    // }, []);
 
     // const button = {
     //     margin: "10px 0 0 0"
@@ -84,11 +90,6 @@ function App() {
         aspectRatio: '1/1'
         // height: ''
     };
-    const status = {
-        display: 'none',
-        backgroundColor: '#FF0000',
-        color: '#00FF00',
-    };
     const resultsContainerStyle = {
         display: 'none',
     }
@@ -111,9 +112,6 @@ function App() {
         setResultsButtonText("Trainingsverlauf einblenden")
         setIsResultsButtonDisabled(true)
         setIsTrainButtonDisabled(true)
-        const statusElement = document.getElementById('trainStatus');
-        // statusElement.style.display = "block";
-        // setTrainStatus("Training läuft ...");
         const formData = new FormData();
         formData.append("epochs", epochs)
         formData.append("batchSize", batchSize)
@@ -125,8 +123,8 @@ function App() {
             const response = await axios.post('https://xai.mnd.thm.de:3000/startTraining', formData, {
             });
             console.log(response.data);
-            setTrainStatus(response.data['message']);
-            statusElement.style.display = "block";
+            setStatusElementTextTrain(response.data['message']);
+            setStatusElementDisplayTrain("block");
 
             let attempt = 0
 
@@ -143,13 +141,13 @@ function App() {
                         if (attempt >= 240) { // try not longer than 2 min
                             clearInterval(interval);
                             console.log(response.data)
-                            setTrainStatus("Training fehlgeschlagen")
+                            setStatusElementTextTrain("Training fehlgeschlagen")
                             setIsTrainButtonDisabled(false)
                         } else if (taskStatus === 'SUCCESS') {
                             clearInterval(interval);
                             console.log(response.data.result)
 
-                            setTrainStatus(response.data.result['message']);
+                            setStatusElementTextTrain(response.data.result['message']);
 
                             const resultsTableBody = document.getElementById("resultsTableBody");
                             resultsTableBody.innerHTML = ""
@@ -195,7 +193,7 @@ function App() {
                         } else if(taskStatus === 'FAILURE') {
                             clearInterval(interval);
                             console.log(response.data)
-                            setTrainStatus("Training fehlgeschlagen")
+                            setStatusElementTextTrain("Training fehlgeschlagen")
                             setIsTrainButtonDisabled(false)
                         }
                         attempt++;
@@ -206,7 +204,7 @@ function App() {
                     .catch(error => {
                         clearInterval(interval);  // Stoppt das Polling im Fehlerfall
                         console.error('Fehler beim Abrufen des Task-Status:', error);
-                        setTrainStatus("Training fehlgeschlagen")
+                        setStatusElementTextTrain("Training fehlgeschlagen")
                         setIsTrainButtonDisabled(false)
                     });
             }, 500);  // Alle 0,5 Sekunden
@@ -218,13 +216,13 @@ function App() {
                 if (error.response.data['exception'] !== undefined) {
                     console.error('Exception:', error.response.data['exception']);
                 }
-                setTrainStatus(error.response.data['message']);
+                setStatusElementTextTrain(error.response.data['message']);
             } else if (error.request) {
                 console.error('Keine Antwort vom Server erhalten:', error.request);
-                setTrainStatus("Server nicht erreichbar");
+                setStatusElementTextTrain("Server nicht erreichbar");
             } else {
                 console.error('Ein Fehler ist aufgetreten:', error.message);
-                setTrainStatus("Training fehlgeschlagen");
+                setStatusElementTextTrain("Training fehlgeschlagen");
             }
             setIsTrainButtonDisabled(false)
         }
@@ -290,12 +288,18 @@ function App() {
                             <input
                                 className="classNameInput"
                                 id="className1"
-                                value={className1} // Binden Sie den Wert des Input-Felds an den Zustand
-                                onChange={e => setClassName1(e.target.value)} // Event-Handler für Änderungen im Input-Feld
+                                value={className1}
+                                onChange={e => setClassName1(e.target.value)}
                             />
                         </label>
-                        <DropzoneTrain setIsTrainButtonDisabled={setIsTrainButtonDisabled} className="class1" visitorId={visitorId} />
-                        <div className="status" id="uploadStatus1" style={status}></div>
+                        <DropzoneTrain className="class1" setClassName={setClassName1}
+                                       setIsTrainButtonDisabled={setIsTrainButtonDisabled}
+                                       visitorId={visitorId} setVisitorId={setVisitorId}
+                                       setStatusElementText={setStatusElementText1}
+                                       setStatusElementDisplay={setStatusElementDisplay1}
+                                       otherStatusElementText={statusElementText2}/>
+                        <div className="status" id="uploadStatus1"
+                             style={{display: statusElementDisplay1, marginTop: 8}}>{statusElementText1}</div>
                     </div>
                 </div>
                 <div className="classFlexboxContainer">
@@ -305,12 +309,18 @@ function App() {
                             <input
                                 className="classNameInput"
                                 id="className2"
-                                value={className2} // Binden Sie den Wert des Input-Felds an den Zustand
-                                onChange={e => setClassName2(e.target.value)} // Event-Handler für Änderungen im Input-Feld
+                                value={className2}
+                                onChange={e => setClassName2(e.target.value)}
                             />
                         </label>
-                        <DropzoneTrain setIsTrainButtonDisabled={setIsTrainButtonDisabled} className="class2" visitorId={visitorId}/>
-                        <div className="status" id="uploadStatus2" style={status}></div>
+                        <DropzoneTrain className="class2" setClassName={setClassName2}
+                                       setIsTrainButtonDisabled={setIsTrainButtonDisabled}
+                                       visitorId={visitorId} setVisitorId={setVisitorId}
+                                       setStatusElementText={setStatusElementText2}
+                                       setStatusElementDisplay={setStatusElementDisplay2}
+                                       otherStatusElementText={statusElementText1}/>
+                        <div className="status" id="uploadStatus2"
+                             style={{display: statusElementDisplay2, marginTop: 8}}>{statusElementText2}</div>
                     </div>
                 </div>
             </div>
@@ -359,9 +369,12 @@ function App() {
                             <option value="false">Nein</option>
                         </select>
                     </label>
-                    <button disabled={isTrainButtonDisabled} id="startTraining" onClick={startTraining}>Training starten</button>
-                    <div className="status" id="trainStatus" style={status}>{trainStatus}</div>
-                    <button disabled={isResultsButtonDisabled} id="showResults" onClick={showOrHideResults}>{resultsButtonText}</button>
+                    <button disabled={isTrainButtonDisabled} id="startTraining" onClick={startTraining}>
+                        Training starten</button>
+                    <div className="status" id="trainStatus" style={{display: statusElementDisplayTrain}}>
+                        {statusElementTextTrain}</div>
+                    <button disabled={isResultsButtonDisabled} id="showResults" onClick={showOrHideResults}>
+                        {resultsButtonText}</button>
                     <div id="resultsContainer" style={resultsContainerStyle}>
                         <table id="resultsTable">
                             <tbody id="resultsTableBody"></tbody>
@@ -375,8 +388,11 @@ function App() {
             <div className="testFlexboxContainer">
                 <div className="testContainer">
                     <b className="header">Test</b>
-                    <DropzoneTest className1={className1} className2={className2} visitorId={visitorId}/>
-                    <div className="status" id="testStatus" style={status}></div>
+                    <DropzoneTest className1={className1} className2={className2} visitorId={visitorId}
+                                  setStatusElementText={setStatusElementTextTest}
+                                  setStatusElementDisplay={setStatusElementDisplayTest}/>
+                    <div className="status" id="testStatus" style={{display: statusElementDisplayTest}}>
+                        {statusElementTextTest}</div>
                     {/*<label>*/}
                     {/*    <b>Methode: </b>*/}
                     {/*    <select style={button} value={method} onChange={e => setMethod(e.target.value)}>*/}

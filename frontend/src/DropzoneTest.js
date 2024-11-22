@@ -73,7 +73,7 @@ const select = {
     marginBottom: '10px'
 }
 
-function DropzoneTest ({ className1, className2, visitorId }) {
+function DropzoneTest ({className1, className2, visitorId, setStatusElementText, setStatusElementDisplay}) {
     const [predictedClass, setPredictedClass] = useState('');
     const [probability, setProbability] = useState('');
     // const [testModel, setTestModel] = useState('own');
@@ -83,9 +83,6 @@ function DropzoneTest ({ className1, className2, visitorId }) {
     const [isTestDisabled, setIsTestDisabled] = useState(false);
 
     const handleChange = (value) => {
-        // const statusElement = document.getElementById('testStatus');
-        // statusElement.textContent = "Test läuft ...";
-        // statusElement.style.display = "block";
         setIsTestDisabled(true);
         setXIndex(value);
         startTest(files[0], value);
@@ -108,9 +105,6 @@ function DropzoneTest ({ className1, className2, visitorId }) {
         },
         onDrop: async acceptedFiles => {
             setIsTestDisabled(true)
-            const statusElement = document.getElementById('testStatus');
-            // statusElement.textContent = "Test läuft ...";
-            // statusElement.style.display = "block";
 
             const processFile = async (file) => {
 
@@ -181,14 +175,14 @@ function DropzoneTest ({ className1, className2, visitorId }) {
                     startTest(file, "predicted");
                 }
                 else {
-                    statusElement.textContent = "Ungültiges Bild";
-                    statusElement.style.display = "block";
+                    setStatusElementText("Ungültiges Bild");
+                    setStatusElementDisplay("block");
                     setIsTestDisabled(false)
                 }
             }
             else {
-                statusElement.textContent = "Ungültiges Bild";
-                statusElement.style.display = "block";
+                setStatusElementText("Ungültiges Bild");
+                setStatusElementDisplay("block");
                 setIsTestDisabled(false)
             }
 
@@ -206,9 +200,6 @@ function DropzoneTest ({ className1, className2, visitorId }) {
         const imgElement = document.getElementById('heatmap');
         imgElement.src = "none"
         imgContainerElement.style.display = "none";
-        const statusElement = document.getElementById('testStatus');
-        // statusElement.textContent = "Test läuft ...";
-        // statusElement.style.display = "block";
         const formData = new FormData();
         formData.append('file', acceptedFile);
         formData.append("testModel", "own")
@@ -219,8 +210,8 @@ function DropzoneTest ({ className1, className2, visitorId }) {
             const response = await axios.post('https://xai.mnd.thm.de:3000/uploadTest', formData, {
             });
             console.log(response.data);
-            statusElement.textContent = response.data['message'];
-            statusElement.style.display = "block";
+            setStatusElementText(response.data['message']);
+            setStatusElementDisplay("block");
 
             let attempt = 0
 
@@ -238,13 +229,13 @@ function DropzoneTest ({ className1, className2, visitorId }) {
                         if (attempt >= 300) { //try not longer than 1 min
                             clearInterval(interval);
                             console.log(response.data)
-                            statusElement.textContent = "Test fehlgeschlagen";
+                            setStatusElementText("Test fehlgeschlagen");
                             setIsTestDisabled(false)
                         } else if (taskStatus === 'SUCCESS') {
                             clearInterval(interval);
                             console.log(response.data.result)
 
-                            statusElement.textContent = response.data.result['message'];
+                            setStatusElementText(response.data.result['message']);
 
                             if (response.data.result["prediction"] === "1") {
                                 setPredictedClass(document.getElementById('className1').value)
@@ -281,7 +272,7 @@ function DropzoneTest ({ className1, className2, visitorId }) {
                                                 if (json['exception'] !== undefined) {
                                                     console.error('Exception:', json['exception']);
                                                 }
-                                                statusElement.textContent = json['message'];
+                                                setStatusElementText(json['message']);
                                             } catch (e) {
                                                 console.error('Fehler beim Parsen der Fehlermeldung:', text);
                                             }
@@ -289,10 +280,10 @@ function DropzoneTest ({ className1, className2, visitorId }) {
                                         reader.readAsText(blob);
                                     } else if (error.request) {
                                         console.error('Keine Antwort vom Server erhalten:', error.request);
-                                        statusElement.textContent = "Server nicht erreichbar";
+                                        setStatusElementText("Server nicht erreichbar");
                                     } else {
                                         console.error('Ein Fehler ist aufgetreten:', error.message);
-                                        statusElement.textContent = "Heatmap anfordern fehlgeschlagen";
+                                        setStatusElementText("Heatmap anfordern fehlgeschlagen");
                                     }
                                 });
                             //Todo: Ende Übergangslösung
@@ -300,7 +291,7 @@ function DropzoneTest ({ className1, className2, visitorId }) {
                         } else if (taskStatus === 'FAILURE') {
                             clearInterval(interval);
                             console.log(response.data)
-                            statusElement.textContent =  "Test fehlgeschlagen";
+                            setStatusElementText("Test fehlgeschlagen");
                             setIsTestDisabled(false)
                         }
 
@@ -312,7 +303,7 @@ function DropzoneTest ({ className1, className2, visitorId }) {
                     .catch(error => {
                         clearInterval(interval);  // Stoppt das Polling im Fehlerfall
                         console.error('Fehler beim Abrufen des Task-Status:', error);
-                        statusElement.textContent =  "Test fehlgeschlagen";
+                        setStatusElementText("Test fehlgeschlagen");
                         setIsTestDisabled(false)
                     });
             }, 200);  // Alle 0,2 Sekunden
@@ -324,13 +315,13 @@ function DropzoneTest ({ className1, className2, visitorId }) {
                 if (error.response.data['exception'] !== undefined) {
                     console.error('Exception:', error.response.data['exception']);
                 }
-                statusElement.textContent = error.response.data['message'];
+                setStatusElementText(error.response.data['message']);
             } else if (error.request) {
                 console.error('Keine Antwort vom Server erhalten:', error.request);
-                statusElement.textContent = "Server nicht erreichbar";
+                setStatusElementText("Server nicht erreichbar");
             } else {
                 console.error('Ein Fehler ist aufgetreten:', error.message);
-                statusElement.textContent = "Test fehlgeschlagen";
+                setStatusElementText("Test fehlgeschlagen");
             }
             setIsTestDisabled(false)
         }

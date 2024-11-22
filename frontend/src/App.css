@@ -30,6 +30,8 @@ select {
 
 .status {
   border-radius: 3px;
+  background-color: #FF0000;
+  color: #00FF00;
 }
 
 .flexbox {
