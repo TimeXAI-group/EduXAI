@@ -65,27 +65,27 @@ const img = {
     // height: ''
 };
 
-// const button = {
-//     margin: '10px 0 10px 0'
-// }
-
 const select = {
     marginBottom: '10px'
 }
 
-function DropzoneTest ({className1, className2, visitorId, setStatusElementText, setStatusElementDisplay}) {
+function DropzoneTest ({className1, className2, visitorId, setStatusElementText, setStatusElementDisplay,
+                           isTestDisabled, setIsTestDisabled, setIsUploadTrainDisabled1, setIsUploadTrainDisabled2,
+                           setIsTrainDisabled}) {
     const [predictedClass, setPredictedClass] = useState('');
     const [probability, setProbability] = useState('');
     // const [testModel, setTestModel] = useState('own');
     const [xIndex, setXIndex] = useState('predicted');
     const [files, setFiles] = useState([]);
     const [previewFiles, setPreviewFiles] = useState([]);
-    const [isTestDisabled, setIsTestDisabled] = useState(false);
 
-    const handleChange = (value) => {
+    const handleChange = async (value) => {
         setIsTestDisabled(true);
+        setIsUploadTrainDisabled1(true)
+        setIsUploadTrainDisabled2(true)
+        setIsTrainDisabled(true)
         setXIndex(value);
-        startTest(files[0], value);
+        await startTest(files[0], value);
     };
 
     const {
@@ -105,53 +105,9 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
         },
         onDrop: async acceptedFiles => {
             setIsTestDisabled(true)
-
-            const processFile = async (file) => {
-
-                const resizeImage = (blob) => {
-                    return new Promise((resolve, reject) => {
-                        const img = new Image();
-                        const reader = new FileReader();
-
-                        reader.onload = (event) => {
-                            img.src = event.target.result;
-
-                            img.onload = () => {
-                                const canvas = document.createElement('canvas');
-                                const ctx = canvas.getContext('2d');
-                                canvas.width = 224;
-                                canvas.height = 224;
-
-                                ctx.drawImage(img, 0, 0, 224, 224);
-
-                                canvas.toBlob((resizedBlob) => {
-                                    if (resizedBlob) {
-                                        resolve(resizedBlob);
-                                    } else {
-                                        reject(new Error('Canvas toBlob failed'));
-                                    }
-                                }, 'image/jpeg', 1);
-                            };
-                        };
-
-                        reader.readAsDataURL(blob);
-                    });
-                };
-
-                try {
-                    const file_name = file.name;
-                    const file_type = file.type;
-                    file = await resizeImage(file);
-                    file = new File([file], file_name, { type: file_type});
-                    return Object.assign(file, {
-                        path: file_name,
-                        preview: URL.createObjectURL(file)
-                    });
-                } catch (e) {
-                    console.error('Error processing file:', e);
-                    return null;
-                }
-            };
+            setIsUploadTrainDisabled1(true)
+            setIsUploadTrainDisabled2(true)
+            setIsTrainDisabled(true)
 
             let file = acceptedFiles[0]
             let demo_file;
@@ -172,18 +128,25 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                 if (file != null && demo_file != null) {
                     setPreviewFiles([demo_file])
                     setFiles([file])
-                    startTest(file, "predicted");
+                    setXIndex("predicted")
+                    await startTest(file, "predicted");
                 }
                 else {
                     setStatusElementText("Ungültiges Bild");
                     setStatusElementDisplay("block");
                     setIsTestDisabled(false)
+                    setIsUploadTrainDisabled1(false)
+                    setIsUploadTrainDisabled2(false)
+                    setIsTrainDisabled(false)
                 }
             }
             else {
                 setStatusElementText("Ungültiges Bild");
                 setStatusElementDisplay("block");
                 setIsTestDisabled(false)
+                setIsUploadTrainDisabled1(false)
+                setIsUploadTrainDisabled2(false)
+                setIsTrainDisabled(false)
             }
 
             //Option 0
@@ -231,6 +194,9 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                             console.log(response.data)
                             setStatusElementText("Test fehlgeschlagen");
                             setIsTestDisabled(false)
+                            setIsUploadTrainDisabled1(false)
+                            setIsUploadTrainDisabled2(false)
+                            setIsTrainDisabled(false)
                         } else if (taskStatus === 'SUCCESS') {
                             clearInterval(interval);
                             console.log(response.data.result)
@@ -288,11 +254,17 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                                 });
                             //Todo: Ende Übergangslösung
                             setIsTestDisabled(false)
+                            setIsUploadTrainDisabled1(false)
+                            setIsUploadTrainDisabled2(false)
+                            setIsTrainDisabled(false)
                         } else if (taskStatus === 'FAILURE') {
                             clearInterval(interval);
                             console.log(response.data)
                             setStatusElementText("Test fehlgeschlagen");
                             setIsTestDisabled(false)
+                            setIsUploadTrainDisabled1(false)
+                            setIsUploadTrainDisabled2(false)
+                            setIsTrainDisabled(false)
                         }
 
                         attempt++;
@@ -305,6 +277,9 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                         console.error('Fehler beim Abrufen des Task-Status:', error);
                         setStatusElementText("Test fehlgeschlagen");
                         setIsTestDisabled(false)
+                        setIsUploadTrainDisabled1(false)
+                        setIsUploadTrainDisabled2(false)
+                        setIsTrainDisabled(false)
                     });
             }, 200);  // Alle 0,2 Sekunden
 
@@ -324,6 +299,9 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                 setStatusElementText("Test fehlgeschlagen");
             }
             setIsTestDisabled(false)
+            setIsUploadTrainDisabled1(false)
+            setIsUploadTrainDisabled2(false)
+            setIsTrainDisabled(false)
         }
     };
 
@@ -340,6 +318,74 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
             </div>
         </div>
     ));
+
+    const loadSampleImage = async () => {
+        setIsTestDisabled(true)
+        setIsUploadTrainDisabled1(true)
+        setIsUploadTrainDisabled2(true)
+        setIsTrainDisabled(true)
+
+        const filename = (Math.random()<0.5 ? "apple" : "pear")+String(Math.floor(Math.random()*10))+".png"
+        const response = await fetch(filename);
+        const buffer = await response.arrayBuffer();
+        const jpgFile = new File([buffer], filename, { type: 'image/png'});
+        const file = Object.assign(jpgFile, {
+            path: filename,
+            preview: URL.createObjectURL(jpgFile)
+        });
+
+        setPreviewFiles([file])
+        setFiles([file])
+        setXIndex("predicted")
+        await startTest(file, "predicted");
+    }
+
+    const processFile = async (file) => {
+
+        const resizeImage = (blob) => {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                const reader = new FileReader();
+
+                reader.onload = (event) => {
+                    img.src = event.target.result;
+
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = 224;
+                        canvas.height = 224;
+
+                        ctx.drawImage(img, 0, 0, 224, 224);
+
+                        canvas.toBlob((resizedBlob) => {
+                            if (resizedBlob) {
+                                resolve(resizedBlob);
+                            } else {
+                                reject(new Error('Canvas toBlob failed'));
+                            }
+                        }, 'image/jpeg', 1);
+                    };
+                };
+
+                reader.readAsDataURL(blob);
+            });
+        };
+
+        try {
+            const file_name = file.name;
+            const file_type = file.type;
+            file = await resizeImage(file);
+            file = new File([file], file_name, { type: file_type});
+            return Object.assign(file, {
+                path: file_name,
+                preview: URL.createObjectURL(file)
+            });
+        } catch (e) {
+            console.error('Error processing file:', e);
+            return null;
+        }
+    };
 
     return (
         <section className="container">
@@ -359,6 +405,10 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
             <aside style={thumbsContainer}>
                 {thumbs}
             </aside>
+            <div>
+                <button disabled={isTestDisabled} onClick={() => loadSampleImage()}
+                        style={{marginTop: 5, marginBottom: 5}}>Probebild nutzen</button>
+            </div>
             {/*<label>*/}
             {/*    <b>Modell: </b>*/}
             {/*    <select style={button} value={testModel} onChange={e => setTestModel(e.target.value)}>*/}

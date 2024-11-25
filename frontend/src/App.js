@@ -16,10 +16,11 @@ function App() {
     const [learnRate, setLearnRate] = useState('0.0001')
     const [pretrained, setPretrained] = useState('vgg16')
     // const [method, setMethod] = useState('gradCam')
-    const [isTrainButtonDisabled, setIsTrainButtonDisabled] = useState(true);
     const [isResultsButtonDisabled, setIsResultsButtonDisabled] = useState(true);
     const [resultsButtonText, setResultsButtonText] = useState("Trainingsverlauf einblenden")
     const [isOwnPretrainedModelDisabled, setIsOwnPretrainedModelDisabled] = useState(true);
+
+    // status elements
     const [statusElementText1, setStatusElementText1] = useState('')
     const [statusElementDisplay1, setStatusElementDisplay1] = useState('none')
     const [statusElementText2, setStatusElementText2] = useState('')
@@ -28,6 +29,12 @@ function App() {
     const [statusElementDisplayTrain, setStatusElementDisplayTrain] = useState('none')
     const [statusElementTextTest, setStatusElementTextTest] = useState('')
     const [statusElementDisplayTest, setStatusElementDisplayTest] = useState('none')
+
+    // disabled buttons or dropzone
+    const [isUploadTrainDisabled1, setIsUploadTrainDisabled1] = useState(false);
+    const [isUploadTrainDisabled2, setIsUploadTrainDisabled2] = useState(false);
+    const [isTrainDisabled, setIsTrainDisabled] = useState(true);
+    const [isTestDisabled, setIsTestDisabled] = useState(true);
 
     // useEffect(() => {
     //     const initializeFingerprint = () => {
@@ -111,7 +118,10 @@ function App() {
         resultsContainer.style.display = "none";
         setResultsButtonText("Trainingsverlauf einblenden")
         setIsResultsButtonDisabled(true)
-        setIsTrainButtonDisabled(true)
+        setIsTrainDisabled(true)
+        setIsTestDisabled(true);
+        setIsUploadTrainDisabled1(true)
+        setIsUploadTrainDisabled2(true)
         const formData = new FormData();
         formData.append("epochs", epochs)
         formData.append("batchSize", batchSize)
@@ -142,7 +152,7 @@ function App() {
                             clearInterval(interval);
                             console.log(response.data)
                             setStatusElementTextTrain("Training fehlgeschlagen")
-                            setIsTrainButtonDisabled(false)
+                            setIsTrainDisabled(false)
                         } else if (taskStatus === 'SUCCESS') {
                             clearInterval(interval);
                             console.log(response.data.result)
@@ -189,12 +199,18 @@ function App() {
                             }
                             setIsResultsButtonDisabled(false)
                             setIsOwnPretrainedModelDisabled(false)
-                            setIsTrainButtonDisabled(false)
+                            setIsTrainDisabled(false)
+                            setIsTestDisabled(false);
+                            setIsUploadTrainDisabled1(false)
+                            setIsUploadTrainDisabled2(false)
                         } else if(taskStatus === 'FAILURE') {
                             clearInterval(interval);
                             console.log(response.data)
                             setStatusElementTextTrain("Training fehlgeschlagen")
-                            setIsTrainButtonDisabled(false)
+                            setIsTrainDisabled(false)
+                            setIsTestDisabled(true);
+                            setIsUploadTrainDisabled1(false)
+                            setIsUploadTrainDisabled2(false)
                         }
                         attempt++;
 
@@ -205,7 +221,10 @@ function App() {
                         clearInterval(interval);  // Stoppt das Polling im Fehlerfall
                         console.error('Fehler beim Abrufen des Task-Status:', error);
                         setStatusElementTextTrain("Training fehlgeschlagen")
-                        setIsTrainButtonDisabled(false)
+                        setIsTrainDisabled(false)
+                        setIsTestDisabled(true);
+                        setIsUploadTrainDisabled1(false)
+                        setIsUploadTrainDisabled2(false)
                     });
             }, 500);  // Alle 0,5 Sekunden
 
@@ -224,7 +243,10 @@ function App() {
                 console.error('Ein Fehler ist aufgetreten:', error.message);
                 setStatusElementTextTrain("Training fehlgeschlagen");
             }
-            setIsTrainButtonDisabled(false)
+            setIsTrainDisabled(false)
+            setIsTestDisabled(true);
+            setIsUploadTrainDisabled1(false)
+            setIsUploadTrainDisabled2(false)
         }
     };
 
@@ -293,13 +315,15 @@ function App() {
                             />
                         </label>
                         <DropzoneTrain className="class1" setClassName={setClassName1}
-                                       setIsTrainButtonDisabled={setIsTrainButtonDisabled}
                                        visitorId={visitorId} setVisitorId={setVisitorId}
                                        setStatusElementText={setStatusElementText1}
                                        setStatusElementDisplay={setStatusElementDisplay1}
-                                       otherStatusElementText={statusElementText2}/>
+                                       otherStatusElementText={statusElementText2}
+                                       isUploadTrainDisabled={isUploadTrainDisabled1}
+                                       setIsUploadTrainDisabled={setIsUploadTrainDisabled1}
+                                       setIsTrainDisabled={setIsTrainDisabled}/>
                         <div className="status" id="uploadStatus1"
-                             style={{display: statusElementDisplay1, marginTop: 8}}>{statusElementText1}</div>
+                             style={{display: statusElementDisplay1}}>{statusElementText1}</div>
                     </div>
                 </div>
                 <div className="classFlexboxContainer">
@@ -314,13 +338,15 @@ function App() {
                             />
                         </label>
                         <DropzoneTrain className="class2" setClassName={setClassName2}
-                                       setIsTrainButtonDisabled={setIsTrainButtonDisabled}
                                        visitorId={visitorId} setVisitorId={setVisitorId}
                                        setStatusElementText={setStatusElementText2}
                                        setStatusElementDisplay={setStatusElementDisplay2}
-                                       otherStatusElementText={statusElementText1}/>
+                                       otherStatusElementText={statusElementText1}
+                                       isUploadTrainDisabled={isUploadTrainDisabled2}
+                                       setIsUploadTrainDisabled={setIsUploadTrainDisabled2}
+                                       setIsTrainDisabled={setIsTrainDisabled}/>
                         <div className="status" id="uploadStatus2"
-                             style={{display: statusElementDisplay2, marginTop: 8}}>{statusElementText2}</div>
+                             style={{display: statusElementDisplay2}}>{statusElementText2}</div>
                     </div>
                 </div>
             </div>
@@ -369,7 +395,7 @@ function App() {
                             <option value="false">Nein</option>
                         </select>
                     </label>
-                    <button disabled={isTrainButtonDisabled} id="startTraining" onClick={startTraining}>
+                    <button disabled={isTrainDisabled} id="startTraining" onClick={startTraining}>
                         Training starten</button>
                     <div className="status" id="trainStatus" style={{display: statusElementDisplayTrain}}>
                         {statusElementTextTrain}</div>
@@ -390,8 +416,12 @@ function App() {
                     <b className="header">Test</b>
                     <DropzoneTest className1={className1} className2={className2} visitorId={visitorId}
                                   setStatusElementText={setStatusElementTextTest}
-                                  setStatusElementDisplay={setStatusElementDisplayTest}/>
-                    <div className="status" id="testStatus" style={{display: statusElementDisplayTest}}>
+                                  setStatusElementDisplay={setStatusElementDisplayTest} isTestDisabled={isTestDisabled}
+                                  setIsTestDisabled={setIsTestDisabled}
+                                  setIsUploadTrainDisabled1={setIsUploadTrainDisabled1}
+                                  setIsUploadTrainDisabled2={setIsUploadTrainDisabled2}
+                                  setIsTrainDisabled={setIsTrainDisabled}/>
+                    <div className="status" id="testStatus" style={{display: statusElementDisplayTest, marginTop: 8}}>
                         {statusElementTextTest}</div>
                     {/*<label>*/}
                     {/*    <b>Methode: </b>*/}

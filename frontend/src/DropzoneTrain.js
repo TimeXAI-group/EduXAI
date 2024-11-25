@@ -58,12 +58,11 @@ const img = {
 //     marginTop: 10,
 // };
 
-const DropzoneTrain = ({className, setClassName, setIsTrainButtonDisabled, visitorId, setVisitorId,
-                           setStatusElementText, setStatusElementDisplay, otherStatusElementText}) => {
+const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setStatusElementText, setStatusElementDisplay,
+                           otherStatusElementText, isUploadTrainDisabled, setIsUploadTrainDisabled,
+                           setIsTrainDisabled}) => {
     const asideID = "aside"+className.slice(-1);
     const [files, setFiles] = useState([]);
-    const [isUploadTrainDisabled, setIsUploadTrainDisabled] = useState(false);
-    const [showSampleImageButton, setShowSampleImageButton] = useState(true);
 
     const {
         getRootProps,
@@ -81,8 +80,7 @@ const DropzoneTrain = ({className, setClassName, setIsTrainButtonDisabled, visit
         },
         onDrop: async acceptedFiles => {
             setIsUploadTrainDisabled(true)
-            setIsTrainButtonDisabled(true)
-            setShowSampleImageButton(false)
+            setIsTrainDisabled(true)
 
             setStatusElementText("Upload läuft ...")
             setStatusElementDisplay("block")
@@ -91,7 +89,6 @@ const DropzoneTrain = ({className, setClassName, setIsTrainButtonDisabled, visit
                 setFiles([])
                 setStatusElementText("Mindestens 10 Dateien hochladen");
                 setIsUploadTrainDisabled(false)
-                setShowSampleImageButton(true)
                 return;
             }
 
@@ -161,7 +158,7 @@ const DropzoneTrain = ({className, setClassName, setIsTrainButtonDisabled, visit
             console.log(response.data);
             setStatusElementText(response.data['message']);
             if (otherStatusElementText === response.data['message']) {
-                setIsTrainButtonDisabled(false);
+                setIsTrainDisabled(false);
             }
         } catch (error) {
             if (error.response) {
@@ -178,8 +175,7 @@ const DropzoneTrain = ({className, setClassName, setIsTrainButtonDisabled, visit
                 console.error('Ein Fehler ist aufgetreten:', error.message);
                 setStatusElementText("Upload fehlgeschlagen");
             }
-            setIsTrainButtonDisabled(true)
-            setShowSampleImageButton(true)
+            setIsTrainDisabled(true)
         }
         setIsUploadTrainDisabled(false)
     }
@@ -227,19 +223,21 @@ const DropzoneTrain = ({className, setClassName, setIsTrainButtonDisabled, visit
         }
         let images = []
         for (let i = 0; i < 10; i++) {
-            const response = await fetch(name+String(i)+".jpg");
+            const filename = name+String(i)+".png"
+            const response = await fetch(filename);
             const buffer = await response.arrayBuffer();
-            const jpgFile = new File([buffer], name+String(i)+'.jpg', { type: 'image/jpg'});
-            images[i] = Object.assign(jpgFile, {
-                path: name+String(i)+".jpg",
-                preview: URL.createObjectURL(jpgFile)
+            const pngFile = new File([buffer], filename, { type: 'image/png'});
+            images[i] = Object.assign(pngFile, {
+                path: filename,
+                preview: URL.createObjectURL(pngFile)
             });
         }
 
         setStatusElementText("Upload läuft ...");
         setStatusElementDisplay("block");
 
-        setShowSampleImageButton(false)
+        setIsUploadTrainDisabled(true)
+        setIsTrainDisabled(true)
         setClassName(textContent);
         setFiles(images);
         await handleUpload(images);
@@ -311,7 +309,8 @@ const DropzoneTrain = ({className, setClassName, setIsTrainButtonDisabled, visit
                 {thumbs}
             </aside>
             {/*<button style={button} onClick={handleUpload}>Bilder hochladen</button>*/}
-            {showSampleImageButton && <button onClick={() => loadSampleImages(className)}>Probebilder laden</button>}
+            <button disabled={isUploadTrainDisabled} style={{marginTop: 5, marginBottom: 8}}
+                    onClick={() => loadSampleImages(className)}>Probebilder nutzen</button>
         </section>
     );
 
