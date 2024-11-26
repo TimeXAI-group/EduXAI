@@ -6,7 +6,6 @@ import axios from "axios";
 import arrow from "./arrow.svg"
 import logo from "./EduXAI.png"
 
-
 function App() {
     const [visitorId, setVisitorId] = useState(null);
     const [className1, setClassName1] = useState('Klasse1');
@@ -16,9 +15,6 @@ function App() {
     const [learnRate, setLearnRate] = useState('0.0001')
     const [pretrained, setPretrained] = useState('vgg16')
     // const [method, setMethod] = useState('gradCam')
-    const [isResultsButtonDisabled, setIsResultsButtonDisabled] = useState(true);
-    const [resultsButtonText, setResultsButtonText] = useState("Trainingsverlauf einblenden")
-    const [isOwnPretrainedModelDisabled, setIsOwnPretrainedModelDisabled] = useState(true);
 
     // status elements
     const [statusElementText1, setStatusElementText1] = useState('')
@@ -35,6 +31,33 @@ function App() {
     const [isUploadTrainDisabled2, setIsUploadTrainDisabled2] = useState(false);
     const [isTrainDisabled, setIsTrainDisabled] = useState(true);
     const [isTestDisabled, setIsTestDisabled] = useState(true);
+
+    // results container and button
+    const [resultsContainerDisplay, setResultsContainerDisplay] = useState('none')
+    const [isResultsButtonDisabled, setIsResultsButtonDisabled] = useState(true);
+    const [resultsButtonText, setResultsButtonText] = useState("Trainingsverlauf einblenden")
+    const [isOwnPretrainedModelDisabled, setIsOwnPretrainedModelDisabled] = useState(true);
+
+    // test
+    const [predictedClass, setPredictedClass] = useState('');
+    const [probability, setProbability] = useState('');
+    // const [testModel, setTestModel] = useState('own');
+    const [xIndex, setXIndex] = useState('predicted');
+    const [testFiles, setTestFiles] = useState([]);
+    const [testPreviewFiles, setTestPreviewFiles] = useState([]);
+    const [heatmapContainerDisplay, setHeatmapContainerDisplay] = useState('none')
+    const [heatmapSource, setHeatmapSource] = useState('none')
+
+    const showOrHideResults = () => {
+        if (resultsContainerDisplay === "block") {
+            setResultsContainerDisplay("none");
+            setResultsButtonText("Trainingsverlauf einblenden")
+        }
+        else {
+            setResultsContainerDisplay("block");
+            setResultsButtonText("Trainingsverlauf ausblenden")
+        }
+    }
 
     // useEffect(() => {
     //     const initializeFingerprint = () => {
@@ -65,15 +88,6 @@ function App() {
     //     };
     // }, []);
 
-    // const button = {
-    //     margin: "10px 0 0 0"
-    // }
-    const thumbsContainer = {
-        display: 'none',
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        marginTop: 8
-    };
     const thumb = {
         display: 'inline-flex',
         borderRadius: 2,
@@ -85,43 +99,27 @@ function App() {
         padding: 4,
         boxSizing: 'border-box'
     };
-    const thumbInner = {
-        display: 'flex',
-        minWidth: 0,
-        width: "100%",
-        overflow: 'hidden'
-    };
-    const img = {
-        display: 'block',
-        width: '100%',
-        aspectRatio: '1/1'
-        // height: ''
-    };
-    const resultsContainerStyle = {
-        display: 'none',
-    }
-
-    const showOrHideResults = () => {
-        const resultsContainer = document.getElementById("resultsContainer");
-        if (resultsContainer.style.display === "block") {
-            resultsContainer.style.display = "none";
-            setResultsButtonText("Trainingsverlauf einblenden")
-        }
-        else {
-            resultsContainer.style.display = "block";
-            setResultsButtonText("Trainingsverlauf ausblenden")
-        }
-    }
 
     const startTraining = async () => {
-        const resultsContainer = document.getElementById("resultsContainer");
-        resultsContainer.style.display = "none";
+        setResultsContainerDisplay("none");
         setResultsButtonText("Trainingsverlauf einblenden")
         setIsResultsButtonDisabled(true)
+
+        setPredictedClass("")
+        setProbability("")
+        setXIndex("predicted")
+        setTestFiles([])
+        setTestPreviewFiles([])
+        setStatusElementDisplayTest("none")
+        setStatusElementTextTest("")
+        setHeatmapContainerDisplay("none")
+        setHeatmapSource("none")
+
         setIsTrainDisabled(true)
         setIsTestDisabled(true);
         setIsUploadTrainDisabled1(true)
         setIsUploadTrainDisabled2(true)
+
         const formData = new FormData();
         formData.append("epochs", epochs)
         formData.append("batchSize", batchSize)
@@ -197,18 +195,21 @@ function App() {
                                 tr.appendChild(thValLoss)
                                 resultsTableBody.appendChild(tr)
                             }
+
                             setIsResultsButtonDisabled(false)
                             setIsOwnPretrainedModelDisabled(false)
+
                             setIsTrainDisabled(false)
                             setIsTestDisabled(false);
                             setIsUploadTrainDisabled1(false)
                             setIsUploadTrainDisabled2(false)
+
                         } else if(taskStatus === 'FAILURE') {
                             clearInterval(interval);
                             console.log(response.data)
+
                             setStatusElementTextTrain("Training fehlgeschlagen")
                             setIsTrainDisabled(false)
-                            setIsTestDisabled(true);
                             setIsUploadTrainDisabled1(false)
                             setIsUploadTrainDisabled2(false)
                         }
@@ -220,9 +221,9 @@ function App() {
                     .catch(error => {
                         clearInterval(interval);  // Stoppt das Polling im Fehlerfall
                         console.error('Fehler beim Abrufen des Task-Status:', error);
+
                         setStatusElementTextTrain("Training fehlgeschlagen")
                         setIsTrainDisabled(false)
-                        setIsTestDisabled(true);
                         setIsUploadTrainDisabled1(false)
                         setIsUploadTrainDisabled2(false)
                     });
@@ -244,58 +245,10 @@ function App() {
                 setStatusElementTextTrain("Training fehlgeschlagen");
             }
             setIsTrainDisabled(false)
-            setIsTestDisabled(true);
             setIsUploadTrainDisabled1(false)
             setIsUploadTrainDisabled2(false)
         }
     };
-
-    // const requestHeatmap = async () => {
-    //     const statusElement = document.getElementById('testStatus');
-    //     axios.get('https://xai.mnd.thm.de:3000/requestHeatmap', {
-    //         params: {
-    //             method: 'gradCam',
-    //             visitorId: visitorId
-    //         },
-    //         responseType: 'blob'
-    //     })
-    //         .then(response => {
-    //             const imgUrl = URL.createObjectURL(response.data);
-    //             const imgElement = document.getElementById('heatmap');
-    //             imgElement.src = imgUrl;
-    //             const imgContainerElement = document.getElementById('heatmapContainer');
-    //             imgContainerElement.style.display = "flex";
-    //             // const imgButtonElement = document.getElementById('heatmapButton');
-    //             // imgButtonElement.style.margin = "10px 0 10px 0"
-    //         })
-    //         .catch(error => {
-    //             if (error.response && error.response.data) {
-    //                 const blob = error.response.data;
-    //                 const reader = new FileReader();
-    //                 reader.onload = () => {
-    //                     const text = reader.result;
-    //                     try {
-    //                         const json = JSON.parse(text);
-    //                         console.error('Fehler:', json['message']);
-    //                         console.error('Status:', error.response.status);
-    //                         if (json['exception'] !== undefined) {
-    //                             console.error('Exception:', json['exception']);
-    //                         }
-    //                         statusElement.textContent = json['message'];
-    //                     } catch (e) {
-    //                         console.error('Fehler beim Parsen der Fehlermeldung:', text);
-    //                     }
-    //                 };
-    //                 reader.readAsText(blob);
-    //             } else if (error.request) {
-    //                 console.error('Keine Antwort vom Server erhalten:', error.request);
-    //                 statusElement.textContent = "Server nicht erreichbar";
-    //             } else {
-    //                 console.error('Ein Fehler ist aufgetreten:', error.message);
-    //                 statusElement.textContent = "Heatmap anfordern fehlgeschlagen";
-    //             }
-    //         });
-    // };
 
     return (
         <div id="flexbox" className="flexbox">
@@ -307,12 +260,8 @@ function App() {
                     <div className="classContainer">
                         <label className="classLabel">
                             <b>Name der Klasse: </b>
-                            <input
-                                className="classNameInput"
-                                id="className1"
-                                value={className1}
-                                onChange={e => setClassName1(e.target.value)}
-                            />
+                            <input className="classNameInput" value={className1}
+                                   onChange={e => setClassName1(e.target.value)}/>
                         </label>
                         <DropzoneTrain className="class1" setClassName={setClassName1}
                                        visitorId={visitorId} setVisitorId={setVisitorId}
@@ -321,21 +270,30 @@ function App() {
                                        otherStatusElementText={statusElementText2}
                                        isUploadTrainDisabled={isUploadTrainDisabled1}
                                        setIsUploadTrainDisabled={setIsUploadTrainDisabled1}
-                                       setIsTrainDisabled={setIsTrainDisabled}/>
-                        <div className="status" id="uploadStatus1"
-                             style={{display: statusElementDisplay1}}>{statusElementText1}</div>
+                                       setIsTrainDisabled={setIsTrainDisabled}
+                                       setOtherIsUploadTrainDisabled={setIsUploadTrainDisabled2}
+                                       setIsTestDisabled={setIsTestDisabled}
+                                       setIsResultsButtonDisabled={setIsResultsButtonDisabled}
+                                       setResultsButtonText={setResultsButtonText}
+                                       setResultsContainerDisplay={setResultsContainerDisplay}
+                                       setStatusElementDisplayTrain={setStatusElementDisplayTrain}
+                                       setStatusElementTextTrain={setStatusElementTextTrain}
+                                       setProbability={setProbability} setXIndex={setXIndex}
+                                       setPredictedClass={setPredictedClass} setTestFiles={setTestFiles}
+                                       setTestPreviewFiles={setTestPreviewFiles}
+                                       setStatusElementDisplayTest={setStatusElementDisplayTest}
+                                       setStatusElementTextTest={setStatusElementTextTest}
+                                       setHeatmapSource={setHeatmapSource}
+                                       setHeatmapContainerDisplay={setHeatmapContainerDisplay}/>
+                        <div className="status" style={{display: statusElementDisplay1}}>{statusElementText1}</div>
                     </div>
                 </div>
                 <div className="classFlexboxContainer">
                     <div className="classContainer">
                         <label className="classLabel">
                             <b>Name der Klasse: </b>
-                            <input
-                                className="classNameInput"
-                                id="className2"
-                                value={className2}
-                                onChange={e => setClassName2(e.target.value)}
-                            />
+                            <input className="classNameInput" value={className2}
+                                   onChange={e => setClassName2(e.target.value)}/>
                         </label>
                         <DropzoneTrain className="class2" setClassName={setClassName2}
                                        visitorId={visitorId} setVisitorId={setVisitorId}
@@ -344,9 +302,22 @@ function App() {
                                        otherStatusElementText={statusElementText1}
                                        isUploadTrainDisabled={isUploadTrainDisabled2}
                                        setIsUploadTrainDisabled={setIsUploadTrainDisabled2}
-                                       setIsTrainDisabled={setIsTrainDisabled}/>
-                        <div className="status" id="uploadStatus2"
-                             style={{display: statusElementDisplay2}}>{statusElementText2}</div>
+                                       setIsTrainDisabled={setIsTrainDisabled}
+                                       setOtherIsUploadTrainDisabled={setIsUploadTrainDisabled1}
+                                       setIsTestDisabled={setIsTestDisabled}
+                                       setIsResultsButtonDisabled={setIsResultsButtonDisabled}
+                                       setResultsButtonText={setResultsButtonText}
+                                       setResultsContainerDisplay={setResultsContainerDisplay}
+                                       setStatusElementDisplayTrain={setStatusElementDisplayTrain}
+                                       setStatusElementTextTrain={setStatusElementTextTrain}
+                                       setProbability={setProbability} setXIndex={setXIndex}
+                                       setPredictedClass={setPredictedClass} setTestFiles={setTestFiles}
+                                       setTestPreviewFiles={setTestPreviewFiles}
+                                       setStatusElementDisplayTest={setStatusElementDisplayTest}
+                                       setStatusElementTextTest={setStatusElementTextTest}
+                                       setHeatmapSource={setHeatmapSource}
+                                       setHeatmapContainerDisplay={setHeatmapContainerDisplay}/>
+                        <div className="status" style={{display: statusElementDisplay2}}>{statusElementText2}</div>
                     </div>
                 </div>
             </div>
@@ -395,13 +366,13 @@ function App() {
                             <option value="false">Nein</option>
                         </select>
                     </label>
-                    <button disabled={isTrainDisabled} id="startTraining" onClick={startTraining}>
+                    <button disabled={isTrainDisabled} onClick={startTraining}>
                         Training starten</button>
-                    <div className="status" id="trainStatus" style={{display: statusElementDisplayTrain}}>
+                    <div className="status" style={{display: statusElementDisplayTrain}}>
                         {statusElementTextTrain}</div>
-                    <button disabled={isResultsButtonDisabled} id="showResults" onClick={showOrHideResults}>
+                    <button disabled={isResultsButtonDisabled} onClick={showOrHideResults}>
                         {resultsButtonText}</button>
-                    <div id="resultsContainer" style={resultsContainerStyle}>
+                    <div style={{display: resultsContainerDisplay}}>
                         <table id="resultsTable">
                             <tbody id="resultsTableBody"></tbody>
                         </table>
@@ -420,8 +391,14 @@ function App() {
                                   setIsTestDisabled={setIsTestDisabled}
                                   setIsUploadTrainDisabled1={setIsUploadTrainDisabled1}
                                   setIsUploadTrainDisabled2={setIsUploadTrainDisabled2}
-                                  setIsTrainDisabled={setIsTrainDisabled}/>
-                    <div className="status" id="testStatus" style={{display: statusElementDisplayTest, marginTop: 8}}>
+                                  setIsTrainDisabled={setIsTrainDisabled} predictedClass={predictedClass}
+                                  setPredictedClass={setPredictedClass} probability={probability}
+                                  setProbability={setProbability} xIndex={xIndex} setXIndex={setXIndex}
+                                  files={testFiles} setFiles={setTestFiles} previewFiles={testPreviewFiles}
+                                  setPreviewFiles={setTestPreviewFiles}
+                                  setHeatmapContainerDisplay={setHeatmapContainerDisplay}
+                                  setHeatmapSource={setHeatmapSource}/>
+                    <div className="status" style={{display: statusElementDisplayTest, marginTop: 8}}>
                         {statusElementTextTest}</div>
                     {/*<label>*/}
                     {/*    <b>Methode: </b>*/}
@@ -431,15 +408,12 @@ function App() {
                     {/*    </select>*/}
                     {/*</label>*/}
                     {/*<button id="heatmapButton" style={button} onClick={requestHeatmap}>Heatmap anfordern</button>*/}
-                    <aside id="heatmapContainer" style={thumbsContainer}>
+                    <aside style={{display: heatmapContainerDisplay, flexDirection: 'row', flexWrap: 'wrap',
+                        marginTop: 8}}>
                         <div style={thumb}>
-                            <div style={thumbInner}>
-                                <img
-                                    id="heatmap"
-                                    src=""
-                                    style={img}
-                                    alt={"Heatmap"}
-                                />
+                            <div style={{display: 'flex', minWidth: 0, width: "100%", overflow: 'hidden'}}>
+                                <img src={heatmapSource} style={{display: 'block', width: '100%', aspectRatio: '1/1'}}
+                                     alt={"Heatmap"}/>
                             </div>
                         </div>
                     </aside>

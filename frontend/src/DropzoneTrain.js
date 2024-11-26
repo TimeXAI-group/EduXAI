@@ -51,17 +51,16 @@ const img = {
     display: 'block',
     width: '100%',
     aspectRatio: '1/1'
-    // height: ''
 };
-
-// const button = {
-//     marginTop: 10,
-// };
 
 const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setStatusElementText, setStatusElementDisplay,
                            otherStatusElementText, isUploadTrainDisabled, setIsUploadTrainDisabled,
-                           setIsTrainDisabled}) => {
-    const asideID = "aside"+className.slice(-1);
+                           setIsTrainDisabled, setOtherIsUploadTrainDisabled, setIsTestDisabled,
+                           setResultsContainerDisplay, setResultsButtonText, setIsResultsButtonDisabled,
+                           setStatusElementDisplayTrain, setStatusElementTextTrain, setPredictedClass, setProbability,
+                           setXIndex, setTestFiles, setTestPreviewFiles, setStatusElementDisplayTest,
+                           setStatusElementTextTest, setHeatmapContainerDisplay, setHeatmapSource}) => {
+
     const [files, setFiles] = useState([]);
 
     const {
@@ -76,11 +75,30 @@ const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setSta
         accept: {
             'image/heic': ['.heic'],
             'image/png': ['.png'],
-            'image/jpg': [".jpg", '.jpeg']
+            'image/jpg': ['.jpg', '.jpeg']
         },
         onDrop: async acceptedFiles => {
+
+            setResultsContainerDisplay("none");
+            setResultsButtonText("Trainingsverlauf einblenden")
+            setIsResultsButtonDisabled(true)
+            setStatusElementDisplayTrain("none")
+            setStatusElementTextTrain("")
+
+            setPredictedClass("")
+            setProbability("")
+            setXIndex("predicted")
+            setTestFiles([])
+            setTestPreviewFiles([])
+            setStatusElementDisplayTest("none")
+            setStatusElementTextTest("")
+            setHeatmapContainerDisplay("none")
+            setHeatmapSource("none")
+
             setIsUploadTrainDisabled(true)
+            setOtherIsUploadTrainDisabled(true)
             setIsTrainDisabled(true)
+            setIsTestDisabled(true)
 
             setStatusElementText("Upload läuft ...")
             setStatusElementDisplay("block")
@@ -89,6 +107,7 @@ const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setSta
                 setFiles([])
                 setStatusElementText("Mindestens 10 Dateien hochladen");
                 setIsUploadTrainDisabled(false)
+                setOtherIsUploadTrainDisabled(false)
                 return;
             }
 
@@ -124,6 +143,7 @@ const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setSta
             else {
                 setStatusElementText("Weniger als 10 gültige Bilder");
                 setIsUploadTrainDisabled(false)
+                setOtherIsUploadTrainDisabled(false)
             }
         }
     });
@@ -175,9 +195,9 @@ const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setSta
                 console.error('Ein Fehler ist aufgetreten:', error.message);
                 setStatusElementText("Upload fehlgeschlagen");
             }
-            setIsTrainDisabled(true)
         }
         setIsUploadTrainDisabled(false)
+        setOtherIsUploadTrainDisabled(false)
     }
 
     const handleUpload = async (acceptedFiles) => {
@@ -211,6 +231,28 @@ const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setSta
     ));
 
     const loadSampleImages = async (className) => {
+
+        setResultsContainerDisplay("none");
+        setResultsButtonText("Trainingsverlauf einblenden")
+        setIsResultsButtonDisabled(true)
+        setStatusElementDisplayTrain("none")
+        setStatusElementTextTrain("")
+
+        setPredictedClass("")
+        setProbability("")
+        setXIndex("predicted")
+        setTestFiles([])
+        setTestPreviewFiles([])
+        setStatusElementDisplayTest("none")
+        setStatusElementTextTest("")
+        setHeatmapContainerDisplay("none")
+        setHeatmapSource("none")
+
+        setIsUploadTrainDisabled(true)
+        setOtherIsUploadTrainDisabled(true)
+        setIsTestDisabled(true)
+        setIsTrainDisabled(true)
+
         let name;
         let textContent;
         if (className === "class1") {
@@ -235,9 +277,6 @@ const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setSta
 
         setStatusElementText("Upload läuft ...");
         setStatusElementDisplay("block");
-
-        setIsUploadTrainDisabled(true)
-        setIsTrainDisabled(true)
         setClassName(textContent);
         setFiles(images);
         await handleUpload(images);
@@ -305,10 +344,9 @@ const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setSta
                     <p>Bilder durch Drag and Drop oder Klicken hinzufügen</p>
                 )}
             </Container>
-            <aside id={asideID} style={thumbsContainer}>
+            <aside style={thumbsContainer}>
                 {thumbs}
             </aside>
-            {/*<button style={button} onClick={handleUpload}>Bilder hochladen</button>*/}
             <button disabled={isUploadTrainDisabled} style={{marginTop: 5, marginBottom: 8}}
                     onClick={() => loadSampleImages(className)}>Probebilder nutzen</button>
         </section>

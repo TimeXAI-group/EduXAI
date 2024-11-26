@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {useDropzone} from 'react-dropzone';
 import styled from 'styled-components';
 import axios from 'axios';
@@ -71,13 +71,9 @@ const select = {
 
 function DropzoneTest ({className1, className2, visitorId, setStatusElementText, setStatusElementDisplay,
                            isTestDisabled, setIsTestDisabled, setIsUploadTrainDisabled1, setIsUploadTrainDisabled2,
-                           setIsTrainDisabled}) {
-    const [predictedClass, setPredictedClass] = useState('');
-    const [probability, setProbability] = useState('');
-    // const [testModel, setTestModel] = useState('own');
-    const [xIndex, setXIndex] = useState('predicted');
-    const [files, setFiles] = useState([]);
-    const [previewFiles, setPreviewFiles] = useState([]);
+                           setIsTrainDisabled, predictedClass, setPredictedClass, probability, setProbability, xIndex,
+                           setXIndex, files, setFiles, previewFiles, setPreviewFiles, setHeatmapContainerDisplay,
+                           setHeatmapSource}) {
 
     const handleChange = async (value) => {
         setIsTestDisabled(true);
@@ -101,9 +97,10 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
         accept: {
             'image/heic': ['.heic'],
             'image/png': ['.png'],
-            'image/jpg': [".jpg", '.jpeg']
+            'image/jpg': ['.jpg', '.jpeg']
         },
         onDrop: async acceptedFiles => {
+
             setIsTestDisabled(true)
             setIsUploadTrainDisabled1(true)
             setIsUploadTrainDisabled2(true)
@@ -148,21 +145,14 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                 setIsUploadTrainDisabled2(false)
                 setIsTrainDisabled(false)
             }
-
-            //Option 0
-            // const updatedFiles = acceptedFiles.map(file => Object.assign(file, {
-            //     preview: URL.createObjectURL(file)
-            // }));
-            // setFiles(updatedFiles);
-            // startTest(acceptedFiles, xIndex);
         }
     });
 
     const startTest = async (acceptedFile, index) => {
-        const imgContainerElement = document.getElementById('heatmapContainer');
-        const imgElement = document.getElementById('heatmap');
-        imgElement.src = "none"
-        imgContainerElement.style.display = "none";
+
+        setHeatmapContainerDisplay("none")
+        setHeatmapSource("none")
+
         const formData = new FormData();
         formData.append('file', acceptedFile);
         formData.append("testModel", "own")
@@ -192,11 +182,13 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                         if (attempt >= 300) { //try not longer than 1 min
                             clearInterval(interval);
                             console.log(response.data)
+
                             setStatusElementText("Test fehlgeschlagen");
                             setIsTestDisabled(false)
                             setIsUploadTrainDisabled1(false)
                             setIsUploadTrainDisabled2(false)
                             setIsTrainDisabled(false)
+
                         } else if (taskStatus === 'SUCCESS') {
                             clearInterval(interval);
                             console.log(response.data.result)
@@ -204,10 +196,10 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                             setStatusElementText(response.data.result['message']);
 
                             if (response.data.result["prediction"] === "1") {
-                                setPredictedClass(document.getElementById('className1').value)
+                                setPredictedClass(className1)
                             }
                             else {
-                                setPredictedClass(document.getElementById('className2').value)
+                                setPredictedClass(className2)
                             }
                             setProbability(response.data.result["probability"])
 
@@ -220,10 +212,8 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                                 responseType: 'blob'
                             })
                                 .then(response => {
-                                    imgElement.src = URL.createObjectURL(response.data);
-                                    imgContainerElement.style.display = "flex";
-                                    // const imgButtonElement = document.getElementById('heatmapButton');
-                                    // imgButtonElement.style.margin = "10px 0 10px 0"
+                                    setHeatmapSource(URL.createObjectURL(response.data));
+                                    setHeatmapContainerDisplay("flex")
                                 })
                                 .catch(error => {
                                     if (error.response && error.response.data) {
@@ -253,13 +243,16 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                                     }
                                 });
                             //Todo: Ende Übergangslösung
+
                             setIsTestDisabled(false)
                             setIsUploadTrainDisabled1(false)
                             setIsUploadTrainDisabled2(false)
                             setIsTrainDisabled(false)
+
                         } else if (taskStatus === 'FAILURE') {
                             clearInterval(interval);
                             console.log(response.data)
+
                             setStatusElementText("Test fehlgeschlagen");
                             setIsTestDisabled(false)
                             setIsUploadTrainDisabled1(false)
@@ -420,13 +413,13 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
             {/*<br></br>*/}
             <label>
                 <b>Erklärbarkeitsindex: </b>
-                <select disabled={isTestDisabled} style={select} value={xIndex} onChange={e => handleChange(e.target.value)}>
+                <select disabled={isTestDisabled} style={select} value={xIndex}
+                        onChange={e => handleChange(e.target.value)}>
                     <option value="predicted">Standard</option>
                     <option value="0">{className1}</option>
                     <option value="1">{className2}</option>
                 </select>
             </label>
-            {/*<button style={button} onClick={() => startTest(files)}>Bild testen</button>*/}
             <div>
                 <b>Vorhergesagte Klasse: {predictedClass}
                     <br></br>
