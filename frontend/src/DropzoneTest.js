@@ -73,7 +73,7 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                            isTestDisabled, setIsTestDisabled, setIsUploadTrainDisabled1, setIsUploadTrainDisabled2,
                            setIsTrainDisabled, predictedClass, setPredictedClass, probability, setProbability, xIndex,
                            setXIndex, files, setFiles, previewFiles, setPreviewFiles, setHeatmapContainerDisplay,
-                           setHeatmapSource}) {
+                           setHeatmapSource, serverAddress, setIsDownloadButtonDisabled}) {
 
     const handleChange = async (value) => {
         setIsTestDisabled(true);
@@ -102,6 +102,7 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
         onDrop: async acceptedFiles => {
 
             setIsTestDisabled(true)
+            setIsDownloadButtonDisabled(true)
             setIsUploadTrainDisabled1(true)
             setIsUploadTrainDisabled2(true)
             setIsTrainDisabled(true)
@@ -135,6 +136,7 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                     setIsUploadTrainDisabled1(false)
                     setIsUploadTrainDisabled2(false)
                     setIsTrainDisabled(false)
+                    setIsDownloadButtonDisabled(false)
                 }
             }
             else {
@@ -144,6 +146,7 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                 setIsUploadTrainDisabled1(false)
                 setIsUploadTrainDisabled2(false)
                 setIsTrainDisabled(false)
+                setIsDownloadButtonDisabled(false)
             }
         }
     });
@@ -160,7 +163,7 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
         formData.append("visitorId", visitorId)
 
         try {
-            const response = await axios.post('https://xai.mnd.thm.de:3000/uploadTest', formData, {
+            const response = await axios.post(serverAddress+'/uploadTest', formData, {
             });
             console.log(response.data);
             setStatusElementText(response.data['message']);
@@ -170,7 +173,7 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
 
             const interval = setInterval(() => {
 
-                axios.get('https://xai.mnd.thm.de:3000/status', {
+                axios.get(serverAddress+'/status', {
                     params: {
                         task_id: response.data["task_id"]
                     }
@@ -188,6 +191,7 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                             setIsUploadTrainDisabled1(false)
                             setIsUploadTrainDisabled2(false)
                             setIsTrainDisabled(false)
+                            setIsDownloadButtonDisabled(false)
 
                         } else if (taskStatus === 'SUCCESS') {
                             clearInterval(interval);
@@ -203,51 +207,16 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                             }
                             setProbability(response.data.result["probability"])
 
-                            //Todo: Start Übergangslösung
-                            axios.get('https://xai.mnd.thm.de:3000/requestHeatmap', {
-                                params: {
-                                    method: 'gradCam',
-                                    visitorId: visitorId
-                                },
-                                responseType: 'blob'
-                            })
-                                .then(response => {
-                                    setHeatmapSource(URL.createObjectURL(response.data));
-                                    setHeatmapContainerDisplay("flex")
-                                })
-                                .catch(error => {
-                                    if (error.response && error.response.data) {
-                                        const blob = error.response.data;
-                                        const reader = new FileReader();
-                                        reader.onload = () => {
-                                            const text = reader.result;
-                                            try {
-                                                const json = JSON.parse(text);
-                                                console.error('Fehler:', json['message']);
-                                                console.error('Status:', error.response.status);
-                                                if (json['exception'] !== undefined) {
-                                                    console.error('Exception:', json['exception']);
-                                                }
-                                                setStatusElementText(json['message']);
-                                            } catch (e) {
-                                                console.error('Fehler beim Parsen der Fehlermeldung:', text);
-                                            }
-                                        };
-                                        reader.readAsText(blob);
-                                    } else if (error.request) {
-                                        console.error('Keine Antwort vom Server erhalten:', error.request);
-                                        setStatusElementText("Server nicht erreichbar");
-                                    } else {
-                                        console.error('Ein Fehler ist aufgetreten:', error.message);
-                                        setStatusElementText("Heatmap anfordern fehlgeschlagen");
-                                    }
-                                });
-                            //Todo: Ende Übergangslösung
+                            const heatmapBase64 = response.data.result['gradCam'];
+                            const heatmapImage = `data:image/png;base64,${heatmapBase64}`;
+                            setHeatmapSource(heatmapImage);
+                            setHeatmapContainerDisplay("flex")
 
                             setIsTestDisabled(false)
                             setIsUploadTrainDisabled1(false)
                             setIsUploadTrainDisabled2(false)
                             setIsTrainDisabled(false)
+                            setIsDownloadButtonDisabled(false)
 
                         } else if (taskStatus === 'FAILURE') {
                             clearInterval(interval);
@@ -258,6 +227,7 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                             setIsUploadTrainDisabled1(false)
                             setIsUploadTrainDisabled2(false)
                             setIsTrainDisabled(false)
+                            setIsDownloadButtonDisabled(false)
                         }
 
                         attempt++;
@@ -273,6 +243,7 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                         setIsUploadTrainDisabled1(false)
                         setIsUploadTrainDisabled2(false)
                         setIsTrainDisabled(false)
+                        setIsDownloadButtonDisabled(false)
                     });
             }, 200);  // Alle 0,2 Sekunden
 
@@ -295,6 +266,7 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
             setIsUploadTrainDisabled1(false)
             setIsUploadTrainDisabled2(false)
             setIsTrainDisabled(false)
+            setIsDownloadButtonDisabled(false)
         }
     };
 
@@ -317,6 +289,7 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
         setIsUploadTrainDisabled1(true)
         setIsUploadTrainDisabled2(true)
         setIsTrainDisabled(true)
+        setIsDownloadButtonDisabled(true)
 
         const filename = (Math.random()<0.5 ? "apple" : "pear")+String(Math.floor(Math.random()*10))+".png"
         const response = await fetch(filename);

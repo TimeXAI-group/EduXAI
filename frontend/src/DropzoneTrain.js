@@ -59,7 +59,9 @@ const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setSta
                            setResultsContainerDisplay, setResultsButtonText, setIsResultsButtonDisabled,
                            setStatusElementDisplayTrain, setStatusElementTextTrain, setPredictedClass, setProbability,
                            setXIndex, setTestFiles, setTestPreviewFiles, setStatusElementDisplayTest,
-                           setStatusElementTextTest, setHeatmapContainerDisplay, setHeatmapSource}) => {
+                           setStatusElementTextTest, setHeatmapContainerDisplay, setHeatmapSource, serverAddress,
+                           setIsDownloadButtonDisabled, setStatusElementDisplayDownload,
+                           setStatusElementTextDownload}) => {
 
     const [files, setFiles] = useState([]);
 
@@ -84,6 +86,8 @@ const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setSta
             setIsResultsButtonDisabled(true)
             setStatusElementDisplayTrain("none")
             setStatusElementTextTrain("")
+            setStatusElementDisplayDownload("none")
+            setStatusElementTextDownload("")
 
             setPredictedClass("")
             setProbability("")
@@ -99,6 +103,7 @@ const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setSta
             setOtherIsUploadTrainDisabled(true)
             setIsTrainDisabled(true)
             setIsTestDisabled(true)
+            setIsDownloadButtonDisabled(true)
 
             setStatusElementText("Upload läuft ...")
             setStatusElementDisplay("block")
@@ -170,7 +175,7 @@ const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setSta
         });
 
         try {
-            const response = await axios.post('https://xai.mnd.thm.de:3000/uploadTrain', formData, {
+            const response = await axios.post(serverAddress+'/uploadTrain', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
@@ -237,6 +242,8 @@ const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setSta
         setIsResultsButtonDisabled(true)
         setStatusElementDisplayTrain("none")
         setStatusElementTextTrain("")
+        setStatusElementDisplayDownload("none")
+        setStatusElementTextDownload("")
 
         setPredictedClass("")
         setProbability("")
@@ -251,6 +258,7 @@ const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setSta
         setIsUploadTrainDisabled(true)
         setOtherIsUploadTrainDisabled(true)
         setIsTestDisabled(true)
+        setIsDownloadButtonDisabled(true)
         setIsTrainDisabled(true)
 
         let name;

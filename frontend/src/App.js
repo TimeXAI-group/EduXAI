@@ -7,6 +7,7 @@ import arrow from "./arrow.svg"
 import logo from "./EduXAI.png"
 
 function App() {
+    const serverAddress = "https://xai.mnd.thm.de:3000"
     const [visitorId, setVisitorId] = useState(null);
     const [className1, setClassName1] = useState('Klasse1');
     const [className2, setClassName2] = useState('Klasse2');
@@ -23,6 +24,8 @@ function App() {
     const [statusElementDisplay2, setStatusElementDisplay2] = useState('none')
     const [statusElementTextTrain, setStatusElementTextTrain] = useState('')
     const [statusElementDisplayTrain, setStatusElementDisplayTrain] = useState('none')
+    const [statusElementTextDownload, setStatusElementTextDownload] = useState('')
+    const [statusElementDisplayDownload, setStatusElementDisplayDownload] = useState('none')
     const [statusElementTextTest, setStatusElementTextTest] = useState('')
     const [statusElementDisplayTest, setStatusElementDisplayTest] = useState('none')
 
@@ -37,6 +40,7 @@ function App() {
     const [isResultsButtonDisabled, setIsResultsButtonDisabled] = useState(true);
     const [resultsButtonText, setResultsButtonText] = useState("Trainingsverlauf einblenden")
     const [isOwnPretrainedModelDisabled, setIsOwnPretrainedModelDisabled] = useState(true);
+    const [isDownloadButtonDisabled, setIsDownloadButtonDisabled] = useState(true);
 
     // test
     const [predictedClass, setPredictedClass] = useState('');
@@ -57,6 +61,77 @@ function App() {
             setResultsContainerDisplay("block");
             setResultsButtonText("Trainingsverlauf ausblenden")
         }
+    }
+
+    const startModelRequest = () => {
+
+        setIsDownloadButtonDisabled(true)
+        setIsTestDisabled(true)
+        setIsUploadTrainDisabled1(true)
+        setIsUploadTrainDisabled2(true)
+        setIsTrainDisabled(true)
+
+        setStatusElementDisplayDownload("block")
+        setStatusElementTextDownload("Modell wird geladen ...")
+
+        axios.get(serverAddress+'/requestModel', {
+            params: {
+                visitorId: visitorId
+            },
+            responseType: 'blob',
+            onDownloadProgress: (progressEvent) => {
+                const { loaded, total } = progressEvent;
+                setStatusElementTextDownload(`Download-Fortschritt: ${Math.round((loaded / total) * 100)}%`)
+                if (loaded === total) {
+                    setStatusElementTextDownload("Download erfolgreich")
+                    setIsTestDisabled(false)
+                    setIsUploadTrainDisabled1(false)
+                    setIsUploadTrainDisabled2(false)
+                    setIsTrainDisabled(false)
+                }
+            }
+        })
+            .then(response => {
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'model.h5'); // Dateiname festlegen
+                document.body.appendChild(link);
+                link.click();
+                link.parentNode.removeChild(link); // Entferne das Element nach dem Klick
+            })
+            .catch(error => {
+                if (error.response && error.response.data) {
+                    const blob = error.response.data;
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        const text = reader.result;
+                        try {
+                            const json = JSON.parse(text);
+                            console.error('Fehler:', json['message']);
+                            console.error('Status:', error.response.status);
+                            if (json['exception'] !== undefined) {
+                                console.error('Exception:', json['exception']);
+                            }
+                            setStatusElementTextDownload(json['message']);
+                        } catch (e) {
+                            console.error('Fehler beim Parsen der Fehlermeldung:', text);
+                        }
+                    };
+                    reader.readAsText(blob);
+                } else if (error.request) {
+                    console.error('Keine Antwort vom Server erhalten:', error.request);
+                    setStatusElementTextDownload("Server nicht erreichbar");
+                } else {
+                    console.error('Ein Fehler ist aufgetreten:', error.message);
+                    setStatusElementTextDownload("Modell anfordern fehlgeschlagen");
+                }
+                setIsDownloadButtonDisabled(false)
+                setIsTestDisabled(false)
+                setIsUploadTrainDisabled1(false)
+                setIsUploadTrainDisabled2(false)
+                setIsTrainDisabled(false)
+            });
     }
 
     // useEffect(() => {
@@ -114,8 +189,11 @@ function App() {
         setStatusElementTextTest("")
         setHeatmapContainerDisplay("none")
         setHeatmapSource("none")
+        setStatusElementDisplayDownload("none")
+        setStatusElementTextDownload("")
 
         setIsTrainDisabled(true)
+        setIsDownloadButtonDisabled(true)
         setIsTestDisabled(true);
         setIsUploadTrainDisabled1(true)
         setIsUploadTrainDisabled2(true)
@@ -128,7 +206,7 @@ function App() {
         formData.append('visitorId', visitorId);
 
         try {
-            const response = await axios.post('https://xai.mnd.thm.de:3000/startTraining', formData, {
+            const response = await axios.post(serverAddress+'/startTraining', formData, {
             });
             console.log(response.data);
             setStatusElementTextTrain(response.data['message']);
@@ -137,7 +215,7 @@ function App() {
             let attempt = 0
 
             const interval = setInterval(() => {
-                axios.get('https://xai.mnd.thm.de:3000/status', {
+                axios.get(serverAddress+'/status', {
                     params: {
                         task_id: response.data["task_id"]
                     }
@@ -200,6 +278,7 @@ function App() {
                             setIsOwnPretrainedModelDisabled(false)
 
                             setIsTrainDisabled(false)
+                            setIsDownloadButtonDisabled(false)
                             setIsTestDisabled(false);
                             setIsUploadTrainDisabled1(false)
                             setIsUploadTrainDisabled2(false)
@@ -278,13 +357,16 @@ function App() {
                                        setResultsContainerDisplay={setResultsContainerDisplay}
                                        setStatusElementDisplayTrain={setStatusElementDisplayTrain}
                                        setStatusElementTextTrain={setStatusElementTextTrain}
+                                       setStatusElementDisplayDownload={setStatusElementDisplayDownload}
+                                       setStatusElementTextDownload={setStatusElementTextDownload}
                                        setProbability={setProbability} setXIndex={setXIndex}
                                        setPredictedClass={setPredictedClass} setTestFiles={setTestFiles}
                                        setTestPreviewFiles={setTestPreviewFiles}
                                        setStatusElementDisplayTest={setStatusElementDisplayTest}
                                        setStatusElementTextTest={setStatusElementTextTest}
-                                       setHeatmapSource={setHeatmapSource}
-                                       setHeatmapContainerDisplay={setHeatmapContainerDisplay}/>
+                                       setHeatmapSource={setHeatmapSource} serverAddress={serverAddress}
+                                       setHeatmapContainerDisplay={setHeatmapContainerDisplay}
+                                       setIsDownloadButtonDisabled={setIsDownloadButtonDisabled}/>
                         <div className="status" style={{display: statusElementDisplay1}}>{statusElementText1}</div>
                     </div>
                 </div>
@@ -310,13 +392,16 @@ function App() {
                                        setResultsContainerDisplay={setResultsContainerDisplay}
                                        setStatusElementDisplayTrain={setStatusElementDisplayTrain}
                                        setStatusElementTextTrain={setStatusElementTextTrain}
+                                       setStatusElementDisplayDownload={setStatusElementDisplayDownload}
+                                       setStatusElementTextDownload={setStatusElementTextDownload}
                                        setProbability={setProbability} setXIndex={setXIndex}
                                        setPredictedClass={setPredictedClass} setTestFiles={setTestFiles}
                                        setTestPreviewFiles={setTestPreviewFiles}
                                        setStatusElementDisplayTest={setStatusElementDisplayTest}
                                        setStatusElementTextTest={setStatusElementTextTest}
-                                       setHeatmapSource={setHeatmapSource}
-                                       setHeatmapContainerDisplay={setHeatmapContainerDisplay}/>
+                                       setHeatmapSource={setHeatmapSource} serverAddress={serverAddress}
+                                       setHeatmapContainerDisplay={setHeatmapContainerDisplay}
+                                       setIsDownloadButtonDisabled={setIsDownloadButtonDisabled}/>
                         <div className="status" style={{display: statusElementDisplay2}}>{statusElementText2}</div>
                     </div>
                 </div>
@@ -359,11 +444,11 @@ function App() {
                     <label>
                         <b>Vortrainiertes Modell: </b>
                         <select value={pretrained} onChange={e => setPretrained(e.target.value)}>
+                            <option value="false">Nein</option>
                             <option disabled={isOwnPretrainedModelDisabled} value="own">Eigenes</option>
                             <option value="vgg16">VGG16</option>
                             <option value="fruits360">Fruits360</option>
                             <option value="vgg16fruits360">VGG16+Fruits360</option>
-                            <option value="false">Nein</option>
                         </select>
                     </label>
                     <button disabled={isTrainDisabled} onClick={startTraining}>
@@ -377,6 +462,10 @@ function App() {
                             <tbody id="resultsTableBody"></tbody>
                         </table>
                     </div>
+                    <button disabled={isDownloadButtonDisabled} onClick={startModelRequest}>
+                        Modell herunterladen</button>
+                    <div className="status" style={{display: statusElementDisplayDownload}}>
+                        {statusElementTextDownload}</div>
                 </div>
             </div>
             <div className="arrowFlexboxContainer arrowFlexboxContainerB">
@@ -396,8 +485,9 @@ function App() {
                                   setProbability={setProbability} xIndex={xIndex} setXIndex={setXIndex}
                                   files={testFiles} setFiles={setTestFiles} previewFiles={testPreviewFiles}
                                   setPreviewFiles={setTestPreviewFiles}
+                                  setIsDownloadButtonDisabled={setIsDownloadButtonDisabled}
                                   setHeatmapContainerDisplay={setHeatmapContainerDisplay}
-                                  setHeatmapSource={setHeatmapSource}/>
+                                  setHeatmapSource={setHeatmapSource} serverAddress={serverAddress}/>
                     <div className="status" style={{display: statusElementDisplayTest, marginTop: 8}}>
                         {statusElementTextTest}</div>
                     {/*<label>*/}
