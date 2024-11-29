@@ -7,9 +7,7 @@ import arrow from "./arrow.svg"
 import logo from "./EduXAI.png"
 
 function App() {
-    console.log(process.env.NODE_ENV)
     const serverAddress = process.env.NODE_ENV === 'development'?"http://localhost:5000":"https://xai.mnd.thm.de:3000"
-    console.log(serverAddress)
     const [visitorId, setVisitorId] = useState(null);
     const [className1, setClassName1] = useState('Klasse1');
     const [className2, setClassName2] = useState('Klasse2');
