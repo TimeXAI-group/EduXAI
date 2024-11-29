@@ -4,6 +4,7 @@ from flask_cors import CORS
 from celery import Celery
 from celery.result import AsyncResult
 import os
+import base64
 from train import start_training
 from test import start_test
 from PIL import Image
@@ -12,13 +13,10 @@ pillow_heif.register_heif_opener()
 
 
 app = Flask(__name__)
-# app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
-# app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
 celery = Celery(app.name, backend='redis://localhost:6379/0', broker='redis://localhost:6379/0')
 celery.conf.broker_connection_retry_on_startup = True
 celery.conf.task_routes = {"run_test": {"queue": "test_queue"}, "run_train": {"queue": "train_queue"}}
 celery.conf.worker_prefetch_multiplier = 1
-# celery.conf.update(app.config)
 CORS(app)
 app.config['UPLOAD_FOLDER'] = './train_data'
 
@@ -137,12 +135,6 @@ def train():
 
         return jsonify({"message": "Training läuft ...", "task_id": task.id}), 202
 
-        # for key in history:
-        #     history[key] = [round(value, 3) for value in history[key]]
-        #
-        # return jsonify({'message': 'Training abgeschlossen', 'accuracy': history['accuracy'], 'loss': history['loss'],
-        #                 'val_accuracy': history['val_accuracy'], 'val_loss': history['val_loss']}), 200
-
     except Exception as e:
         return jsonify({'message': "Training fehlgeschlagen", "exception": str(e)}), 500
 
@@ -165,8 +157,17 @@ def run_test(path, test_model, x_index):
 
     predicted_class, probability = start_test(path=path, test_model=test_model, x_index=x_index)
 
-    return {'message': 'Test abgeschlossen', 'prediction': str(predicted_class+1),
-            'probability': str(round(probability*100, 2))}
+    with open(os.path.join(path, "grad_cam.jpg"), "rb") as image_file:
+        grad_cam_base64 = base64.b64encode(image_file.read()).decode('utf-8')
+
+    # with open(os.path.join(path, "sign_x.jpg"), "rb") as image_file:
+    #     sign_x_base64 = base64.b64encode(image_file.read()).decode('utf-8')
+
+    return {'message': 'Test abgeschlossen',
+            'prediction': str(predicted_class+1),
+            'probability': str(round(probability*100, 2)),
+            # 'signX': sign_x_base64,
+            'gradCam': grad_cam_base64}
 
 
 @app.route('/uploadTest', methods=['POST'])
@@ -200,24 +201,19 @@ def test():
         return jsonify({'message': "Test fehlgeschlagen", "exception": str(e)}), 500
 
 
-@app.route('/requestHeatmap', methods=['GET'])
+@app.route('/requestModel', methods=['GET'])
 def heatmap():
     try:
-        method = request.args.get('method')
         visitor_id = request.args.get('visitorId')
 
-        if method == "gradCam":
-            image = "grad_cam.jpg"
-        else:
-            image = "sign_x.jpg"
+        model_path = os.path.join(visitor_id, "model.h5")
+        if not os.path.exists(model_path):
+            return jsonify({'message': 'Kein Modell verfügbar'}), 400
 
-        if not os.path.exists(os.path.join(visitor_id, image)):
-            return jsonify({'message': 'Keine Heatmap verfügbar'}), 400
-
-        return send_file(os.path.join(visitor_id, image), mimetype='image/jpg')
+        return send_file(model_path, as_attachment=True, mimetype='application/octet-stream', download_name='model.h5')
 
     except Exception as e:
-        return jsonify({'message': 'Heatmap anfordern fehlgeschlagen', "exception": str(e)}), 500
+        return jsonify({'message': 'Modell anfordern fehlgeschlagen', "exception": str(e)}), 500
 
 
 # if __name__ == '__main__':

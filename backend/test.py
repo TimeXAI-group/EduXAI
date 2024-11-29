@@ -1,13 +1,11 @@
 import os.path
 import tensorflow as tf
-from keras.api._v2.keras.preprocessing import image
-from keras.api._v2.keras.models import load_model, Model
+from keras.utils import load_img, img_to_array
+from keras.models import load_model, Model
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
-from signxai.methods.wrappers import calculate_relevancemap
-from signxai.utils.utils import (load_image, aggregate_and_normalize_relevancemap_rgb,
-                                 calculate_explanation_innvestigate)
+from signxai.utils.utils import aggregate_and_normalize_relevancemap_rgb, calculate_explanation_innvestigate
 
 
 def start_test(path, test_model, x_index):
@@ -29,14 +27,13 @@ def start_test(path, test_model, x_index):
 
     target_shape = (224, 224)
 
-    img = image.load_img(img_path, target_size=target_shape)
-    img_array = image.img_to_array(img)
+    img = load_img(img_path, target_size=target_shape)
+    img_array = img_to_array(img)
     img_array_normalized = img_array / 255.
     img_array_expanded = img_array_normalized[tf.newaxis, ...]
 
     score = model.predict(img_array_expanded)
-    print(score)
-    ind = np.argmax(score)
+    ind = int(np.argmax(score))
     index = ind
 
     if x_index != "predicted":
@@ -67,32 +64,28 @@ def start_test(path, test_model, x_index):
     superimposed_img = cv2.addWeighted(cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR), 0.4, heatmap, 0.6, 0)
     cv2.imwrite(os.path.join(path, "grad_cam.jpg"), superimposed_img)
 
-    #  Remove last layer's softmax activation (we need the raw values!)
-    model.layers[-1].activation = None
-
-    # img, x = load_image(img_path)
-
-    # Calculate relevancemaps
-    # R1 = calculate_relevancemap('lrpz_epsilon_0_1_std_x', np.array(x), model)
-    # R2 = calculate_relevancemap('lrpsign_epsilon_0_1_std_x', np.array(x), model)
-
-    # Equivalent relevance maps as for R1 and R2, but with direct access to innvestigate and parameters
-    # R3 = calculate_explanation_innvestigate(model, x, method='lrp.stdxepsilon', stdfactor=0.1, input_layer_rule='Z', neuron_selection=ind)
-    # R4 = calculate_explanation_innvestigate(model, x, method='lrp.stdxepsilon', stdfactor=0.1, input_layer_rule='SIGN')
-
-    # Visualize heatmaps
-    # fig, axs = plt.subplots(ncols=1, nrows=1, figsize=(10, 10))
-    # axs[0][0].imshow(img)
-    # axs[1][0].imshow(img)
-    # axs[0][1].matshow(aggregate_and_normalize_relevancemap_rgb(R1), cmap='seismic', clim=(-1, 1))
-    # axs[0][2].matshow(aggregate_and_normalize_relevancemap_rgb(R2), cmap='seismic', clim=(-1, 1))
-    # axs.matshow(aggregate_and_normalize_relevancemap_rgb(R3), cmap='seismic', clim=(-1, 1))
-    # axs[1].matshow(aggregate_and_normalize_relevancemap_rgb(R4), cmap='seismic', clim=(-1, 1))
-
-    # plt.savefig(os.path.join(path, "sign_x.jpg"), bbox_inches='tight')
+    # #  Remove last layer's softmax activation (we need the raw values!)
+    # model.layers[-1].activation = None
+    #
+    # x = img_to_array(img)
+    # # 'RGB'->'BGR'
+    # x = x[..., ::-1]
+    # # Zero-centering based on ImageNet mean RGB values
+    # mean = [103.939, 116.779, 123.68]
+    # x[..., 0] -= mean[0]
+    # x[..., 1] -= mean[1]
+    # x[..., 2] -= mean[2]
+    #
+    # r = calculate_explanation_innvestigate(model, x, method='lrp.stdxepsilon', stdfactor=0.1, input_layer_rule='Z',
+    #                                        neuron_selection=ind)
+    # # Visualize heatmaps
+    # fig, axs = plt.subplots(ncols=1, nrows=1, figsize=(2.92, 2.92), dpi=100)
+    # axs.matshow(aggregate_and_normalize_relevancemap_rgb(r), cmap='seismic', clim=(-1, 1))
+    # axs.axis('off')
+    # plt.savefig(os.path.join(path, "sign_x.jpg"), bbox_inches='tight', dpi=100, pad_inches=0)
 
     return int(index), float(score[0][index])
 
 
 # if __name__ == '__main__':
-#     print(start_test("069e0a7249f84f7f276bd051bbb3d687", test_model="fruits360", x_index="predicted"))
+#     print(start_test("d0093721cd7ba98debfebc9f7aa37f19", test_model="own", x_index="1"))

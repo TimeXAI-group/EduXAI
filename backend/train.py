@@ -1,10 +1,10 @@
-import os.path
-from keras.api._v2.keras.models import Sequential, load_model, Model
-from keras.api._v2.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
-from keras.api._v2.keras.preprocessing.image import ImageDataGenerator
-from keras.api._v2.keras.optimizers import Adam
-from keras.api._v2.keras.callbacks import EarlyStopping
-from keras.api._v2.keras.applications import VGG16
+import os
+from keras.models import Sequential, load_model, Model
+from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
+from keras.preprocessing.image import ImageDataGenerator
+from keras.optimizers import Adam
+from keras.callbacks import EarlyStopping
+from keras.applications import VGG16
 
 
 def start_training(path, epochs, batch_size, learn_rate, pretrained, model_save_path):
