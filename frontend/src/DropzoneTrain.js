@@ -61,7 +61,7 @@ const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setSta
                            setXIndex, setTestFiles, setTestPreviewFiles, setStatusElementDisplayTest,
                            setStatusElementTextTest, setHeatmapContainerDisplay, setHeatmapSource, serverAddress,
                            setIsDownloadButtonDisabled, setStatusElementDisplayDownload,
-                           setStatusElementTextDownload}) => {
+                           setStatusElementTextDownload, setDownloaded}) => {
 
     const [files, setFiles] = useState([]);
 
@@ -104,6 +104,7 @@ const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setSta
             setIsTrainDisabled(true)
             setIsTestDisabled(true)
             setIsDownloadButtonDisabled(true)
+            setDownloaded(false)
 
             setStatusElementText("Upload läuft ...")
             setStatusElementDisplay("block")
@@ -259,6 +260,7 @@ const DropzoneTrain = ({className, setClassName, visitorId, setVisitorId, setSta
         setOtherIsUploadTrainDisabled(true)
         setIsTestDisabled(true)
         setIsDownloadButtonDisabled(true)
+        setDownloaded(false)
         setIsTrainDisabled(true)
 
         let name;

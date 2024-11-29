@@ -73,7 +73,7 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                            isTestDisabled, setIsTestDisabled, setIsUploadTrainDisabled1, setIsUploadTrainDisabled2,
                            setIsTrainDisabled, predictedClass, setPredictedClass, probability, setProbability, xIndex,
                            setXIndex, files, setFiles, previewFiles, setPreviewFiles, setHeatmapContainerDisplay,
-                           setHeatmapSource, serverAddress, setIsDownloadButtonDisabled}) {
+                           setHeatmapSource, serverAddress, setIsDownloadButtonDisabled, downloaded}) {
 
     const handleChange = async (value) => {
         setIsTestDisabled(true);
@@ -136,7 +136,9 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                     setIsUploadTrainDisabled1(false)
                     setIsUploadTrainDisabled2(false)
                     setIsTrainDisabled(false)
-                    setIsDownloadButtonDisabled(false)
+                    if (!downloaded) {
+                        setIsDownloadButtonDisabled(false)
+                    }
                 }
             }
             else {
@@ -146,7 +148,9 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                 setIsUploadTrainDisabled1(false)
                 setIsUploadTrainDisabled2(false)
                 setIsTrainDisabled(false)
-                setIsDownloadButtonDisabled(false)
+                if (!downloaded) {
+                    setIsDownloadButtonDisabled(false)
+                }
             }
         }
     });
@@ -191,7 +195,9 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                             setIsUploadTrainDisabled1(false)
                             setIsUploadTrainDisabled2(false)
                             setIsTrainDisabled(false)
-                            setIsDownloadButtonDisabled(false)
+                            if (!downloaded) {
+                                setIsDownloadButtonDisabled(false)
+                            }
 
                         } else if (taskStatus === 'SUCCESS') {
                             clearInterval(interval);
@@ -216,7 +222,9 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                             setIsUploadTrainDisabled1(false)
                             setIsUploadTrainDisabled2(false)
                             setIsTrainDisabled(false)
-                            setIsDownloadButtonDisabled(false)
+                            if (!downloaded) {
+                                setIsDownloadButtonDisabled(false)
+                            }
 
                         } else if (taskStatus === 'FAILURE') {
                             clearInterval(interval);
@@ -227,7 +235,9 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                             setIsUploadTrainDisabled1(false)
                             setIsUploadTrainDisabled2(false)
                             setIsTrainDisabled(false)
-                            setIsDownloadButtonDisabled(false)
+                            if (!downloaded) {
+                                setIsDownloadButtonDisabled(false)
+                            }
                         }
 
                         attempt++;
@@ -243,7 +253,9 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
                         setIsUploadTrainDisabled1(false)
                         setIsUploadTrainDisabled2(false)
                         setIsTrainDisabled(false)
-                        setIsDownloadButtonDisabled(false)
+                        if (!downloaded) {
+                            setIsDownloadButtonDisabled(false)
+                        }
                     });
             }, 200);  // Alle 0,2 Sekunden
 
@@ -266,7 +278,9 @@ function DropzoneTest ({className1, className2, visitorId, setStatusElementText,
             setIsUploadTrainDisabled1(false)
             setIsUploadTrainDisabled2(false)
             setIsTrainDisabled(false)
-            setIsDownloadButtonDisabled(false)
+            if (!downloaded) {
+                setIsDownloadButtonDisabled(false)
+            }
         }
     };
 

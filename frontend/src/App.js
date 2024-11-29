@@ -7,7 +7,9 @@ import arrow from "./arrow.svg"
 import logo from "./EduXAI.png"
 
 function App() {
-    const serverAddress = "https://xai.mnd.thm.de:3000"
+    console.log(process.env.NODE_ENV)
+    const serverAddress = process.env.NODE_ENV === 'development'?"http://localhost:5000":"https://xai.mnd.thm.de:3000"
+    console.log(serverAddress)
     const [visitorId, setVisitorId] = useState(null);
     const [className1, setClassName1] = useState('Klasse1');
     const [className2, setClassName2] = useState('Klasse2');
@@ -41,6 +43,7 @@ function App() {
     const [resultsButtonText, setResultsButtonText] = useState("Trainingsverlauf einblenden")
     const [isOwnPretrainedModelDisabled, setIsOwnPretrainedModelDisabled] = useState(true);
     const [isDownloadButtonDisabled, setIsDownloadButtonDisabled] = useState(true);
+    const [downloaded, setDownloaded] = useState(false);
 
     // test
     const [predictedClass, setPredictedClass] = useState('');
@@ -84,6 +87,7 @@ function App() {
                 setStatusElementTextDownload(`Download-Fortschritt: ${Math.round((loaded / total) * 100)}%`)
                 if (loaded === total) {
                     setStatusElementTextDownload("Download erfolgreich")
+                    setDownloaded(true)
                     setIsTestDisabled(false)
                     setIsUploadTrainDisabled1(false)
                     setIsUploadTrainDisabled2(false)
@@ -126,7 +130,9 @@ function App() {
                     console.error('Ein Fehler ist aufgetreten:', error.message);
                     setStatusElementTextDownload("Modell anfordern fehlgeschlagen");
                 }
-                setIsDownloadButtonDisabled(false)
+                if (!downloaded) {
+                    setIsDownloadButtonDisabled(false)
+                }
                 setIsTestDisabled(false)
                 setIsUploadTrainDisabled1(false)
                 setIsUploadTrainDisabled2(false)
@@ -194,6 +200,7 @@ function App() {
 
         setIsTrainDisabled(true)
         setIsDownloadButtonDisabled(true)
+        setDownloaded(false)
         setIsTestDisabled(true);
         setIsUploadTrainDisabled1(true)
         setIsUploadTrainDisabled2(true)
@@ -351,7 +358,7 @@ function App() {
                                        setIsUploadTrainDisabled={setIsUploadTrainDisabled1}
                                        setIsTrainDisabled={setIsTrainDisabled}
                                        setOtherIsUploadTrainDisabled={setIsUploadTrainDisabled2}
-                                       setIsTestDisabled={setIsTestDisabled}
+                                       setIsTestDisabled={setIsTestDisabled} setDownloaded={setDownloaded}
                                        setIsResultsButtonDisabled={setIsResultsButtonDisabled}
                                        setResultsButtonText={setResultsButtonText}
                                        setResultsContainerDisplay={setResultsContainerDisplay}
@@ -384,7 +391,7 @@ function App() {
                                        otherStatusElementText={statusElementText1}
                                        isUploadTrainDisabled={isUploadTrainDisabled2}
                                        setIsUploadTrainDisabled={setIsUploadTrainDisabled2}
-                                       setIsTrainDisabled={setIsTrainDisabled}
+                                       setIsTrainDisabled={setIsTrainDisabled} setDownloaded={setDownloaded}
                                        setOtherIsUploadTrainDisabled={setIsUploadTrainDisabled1}
                                        setIsTestDisabled={setIsTestDisabled}
                                        setIsResultsButtonDisabled={setIsResultsButtonDisabled}
@@ -484,7 +491,7 @@ function App() {
                                   setPredictedClass={setPredictedClass} probability={probability}
                                   setProbability={setProbability} xIndex={xIndex} setXIndex={setXIndex}
                                   files={testFiles} setFiles={setTestFiles} previewFiles={testPreviewFiles}
-                                  setPreviewFiles={setTestPreviewFiles}
+                                  setPreviewFiles={setTestPreviewFiles} downloaded={downloaded}
                                   setIsDownloadButtonDisabled={setIsDownloadButtonDisabled}
                                   setHeatmapContainerDisplay={setHeatmapContainerDisplay}
                                   setHeatmapSource={setHeatmapSource} serverAddress={serverAddress}/>
